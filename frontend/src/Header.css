@@ -1,0 +1,40 @@
+/* frontend/src/Header.css */
+.site-header {
+  background-color: #333;
+  color: #fff;
+  padding: 15px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 24px;
+  margin: 0;
+  color: #fff;
+}
+
+.logo-link {
+  text-decoration: none;
+}
+
+.main-nav .nav-link {
+  color: #fff;
+  text-decoration: none;
+  margin-left: 25px;
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.main-nav .nav-link:hover {
+  color: #007bff;
+}

@@ -1,14 +1,14 @@
 // frontend/src/App.js
 
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Keep the styling if you want to
+import './App.css'; 
+import './BusinessProfile.css'; // Add this for new styling
 import BusinessProfileForm from './BusinessProfileForm';
 
 function App() {
-  const [profiles, setProfiles] = useState([]); // Use an array for multiple profiles
+  const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all existing profiles
   const fetchProfiles = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/profiles/');
@@ -25,7 +25,6 @@ function App() {
     }
   };
 
-  // Submit a new profile
   const submitProfile = async (formData) => {
     try {
       const response = await fetch('http://localhost:8000/api/profiles/', {
@@ -37,7 +36,7 @@ function App() {
       });
       if (response.ok) {
         const newProfile = await response.json();
-        setProfiles([...profiles, newProfile]); // Add the new profile to the list
+        setProfiles([...profiles, newProfile]);
       } else {
         console.error('Failed to submit profile:', response.statusText);
       }
@@ -56,21 +55,37 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Showpur Business Profiles</h1>
+      <h1>Showpur Business Pages</h1>
       {profiles.length > 0 ? (
-        <ul>
+        <div className="profiles-container">
           {profiles.map(profile => (
-            <li key={profile.id}>
-              <h2>{profile.business_name}</h2>
-              <p>Email: {profile.contact_email}</p>
-              <p>Description: {profile.description}</p>
-            </li>
+            <div key={profile.id} className="business-page">
+              <div className="cover-photo" style={{ backgroundImage: `url(${profile.cover_photo_url})` }}></div>
+              <div className="profile-header">
+                <img src={profile.logo_url} alt="Business Logo" className="business-logo" />
+                <div className="business-info">
+                  <h2>{profile.business_name}</h2>
+                  <p className="business-contact">
+                    <a href={`mailto:${profile.contact_email}`}>{profile.contact_email}</a> | {profile.phone_number}
+                  </p>
+                </div>
+              </div>
+              <div className="business-details">
+                <p>{profile.description}</p>
+                <div className="links">
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer">Website</a>
+                  <a href={profile.facebook_page} target="_blank" rel="noopener noreferrer">Facebook</a>
+                </div>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
-        <p>No profiles found. Create the first one!</p>
+        <>
+          <p>No profiles found. Create the first one!</p>
+          <BusinessProfileForm onSubmit={submitProfile} />
+        </>
       )}
-      <BusinessProfileForm onSubmit={submitProfile} />
     </div>
   );
 }

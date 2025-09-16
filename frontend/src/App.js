@@ -1,17 +1,21 @@
 // frontend/src/App.js
 
 import React, { useState, useEffect } from 'react';
-import './App.css'; 
-import './BusinessProfile.css'; 
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import './App.css';
+import './BusinessProfile.css';
 import Header from './Header';
 import Footer from './Footer';
 import BusinessProfileForm from './BusinessProfileForm';
+
+// You will create this component next
+import BusinessProfileDetail from './BusinessProfileDetail';
 
 function App() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Place the fetch and submit functions inside the component
+  // Function to fetch all existing profiles from the backend
   const fetchProfiles = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/profiles/');
@@ -28,26 +32,26 @@ function App() {
     }
   };
 
+  // Function to submit a new profile, including file uploads
   const submitProfile = async (formData) => {
     try {
       const response = await fetch('http://localhost:8000/api/profiles/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formData, // Send formData directly for file uploads
       });
       if (response.ok) {
         const newProfile = await response.json();
         setProfiles([...profiles, newProfile]);
       } else {
-        console.error('Failed to submit profile:', response.statusText);
+        const errorData = await response.json();
+        console.error('Failed to submit profile:', errorData);
       }
     } catch (error) {
       console.error('Error submitting profile:', error);
     }
   };
 
+  // The useEffect hook runs once when the component mounts
   useEffect(() => {
     fetchProfiles();
   }, []);
@@ -57,43 +61,39 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <Header />
-      <main>
-        <h1>Showpur Business Pages</h1>
-        {profiles.length > 0 ? (
-          <div className="profiles-container">
-            {profiles.map(profile => (
-              <div key={profile.id} className="business-page">
-                <div className="cover-photo" style={{ backgroundImage: `url(${profile.cover_photo_url})` }}></div>
-                <div className="profile-header">
-                  <img src={profile.logo_url} alt="Business Logo" className="business-logo" />
-                  <div className="business-info">
-                    <h2>{profile.business_name}</h2>
-                    <p className="business-contact">
-                      <a href={`mailto:${profile.contact_email}`}>{profile.contact_email}</a> | {profile.phone_number}
-                    </p>
+    <Router>
+      <div className="App">
+        <Header />
+        <main>
+          <Routes>
+            <Route path="/" element={
+              <>
+                <h1>Showpur Business Pages</h1>
+                {profiles.length > 0 ? (
+                  <div className="profiles-container">
+                    {profiles.map(profile => (
+                      <div key={profile.id} className="business-page">
+                        <Link to={`/profiles/${profile.id}`}>
+                          <h2>{profile.business_name}</h2>
+                        </Link>
+                        <p>{profile.description}</p>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                <div className="business-details">
-                  <p>{profile.description}</p>
-                  <div className="links">
-                    <a href={profile.website} target="_blank" rel="noopener noreferrer">Website</a>
-                    <a href={profile.facebook_page} target="_blank" rel="noopener noreferrer">Facebook</a>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <p>No profiles found. Create the first one!</p>
-            <BusinessProfileForm onSubmit={submitProfile} />
-          </>
-        )}
-      </main>
-      <Footer />
-    </div>
+                ) : (
+                  <>
+                    <p>No profiles found. Create the first one!</p>
+                    <BusinessProfileForm onSubmit={submitProfile} />
+                  </>
+                )}
+              </>
+            } />
+            <Route path="/profiles/:id" element={<BusinessProfileDetail />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 

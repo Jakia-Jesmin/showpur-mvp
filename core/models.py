@@ -9,6 +9,11 @@ class BusinessProfile(models.Model):
     address = models.CharField(max_length=255, blank=True)
     website = models.URLField(blank=True)
     facebook_page = models.URLField(blank=True)
+    
+    # Update these fields to ImageField
+    logo = models.ImageField(upload_to='logos/', null=True, blank=True)
+    cover_photo = models.ImageField(upload_to='covers/', null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

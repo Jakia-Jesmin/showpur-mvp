@@ -9,8 +9,8 @@ function Footer() {
         <p>&copy; {new Date().getFullYear()} Showpur. All rights reserved.</p>
         <div className="social-links">
           {/* Add social media links here */}
-          <a href="#">Facebook</a>
-          <a href="#">LinkedIn</a>
+          <a href="https://web.facebook.com/showpur" target="_blank">Facebook</a>
+          <a href="https://www.linkedin.com/company/showpur" target="_blank">LinkedIn</a>
         </div>
       </div>
     </footer>

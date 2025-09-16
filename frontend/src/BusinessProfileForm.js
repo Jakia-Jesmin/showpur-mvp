@@ -11,30 +11,25 @@ function BusinessProfileForm({ onSubmit }) {
         address: '',
         website: '',
         facebook_page: '',
-        // New fields for images
-        logo_url: '',
-        cover_photo_url: '',
+        logo: null,  // Change to null
+        cover_photo: null, // Change to null
     });
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prevData => ({ ...prevData, [name]: value }));
+        const { name, value, files } = e.target;
+        setFormData(prevData => ({
+            ...prevData,
+            [name]: files ? files[0] : value,
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await onSubmit(formData);
-        setFormData({
-            business_name: '',
-            description: '',
-            contact_email: '',
-            phone_number: '',
-            address: '',
-            website: '',
-            facebook_page: '',
-            logo_url: '',
-            cover_photo_url: '',
-        });
+        const data = new FormData();
+        for (const key in formData) {
+            data.append(key, formData[key]);
+        }
+        await onSubmit(data);
     };
 
     return (
@@ -47,8 +42,13 @@ function BusinessProfileForm({ onSubmit }) {
             <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Address" />
             <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="Website URL" />
             <input type="url" name="facebook_page" value={formData.facebook_page} onChange={handleChange} placeholder="Facebook Page URL" />
-            <input type="url" name="logo_url" value={formData.logo_url} onChange={handleChange} placeholder="Logo Image URL" />
-            <input type="url" name="cover_photo_url" value={formData.cover_photo_url} onChange={handleChange} placeholder="Cover Photo URL" />
+            
+            <label htmlFor="logo">Business Logo</label>
+            <input type="file" name="logo" id="logo" onChange={handleChange} />
+            
+            <label htmlFor="cover_photo">Cover Photo</label>
+            <input type="file" name="cover_photo" id="cover_photo" onChange={handleChange} />
+            
             <button type="submit">Save Profile</button>
         </form>
     );

@@ -1,38 +1,155 @@
+/* frontend/src/App.css */
+
 .App {
   text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+h1 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: bold;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.loading {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 40px 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+/* Profile List Styles */
+.profiles-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 50px;
+}
+
+.profile-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: left;
+}
+
+.profile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.profile-card h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.profile-title-link {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 1.3rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.profile-title-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.profile-card p {
+  margin: 8px 0;
+  color: #555;
+  line-height: 1.4;
+}
+
+.profile-card p strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.profile-actions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.view-details-btn {
+  display: inline-block;
+  background-color: #007bff;
   color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
-.App-link {
-  color: #61dafb;
+.view-details-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+/* Form Section Styles */
+.form-section {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 30px;
+  margin-top: 40px;
+  border: 1px solid #e9ecef;
+}
+
+.form-section h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .App {
+    padding: 15px;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .profiles-list {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .profile-card {
+    padding: 20px;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .form-section {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .App {
+    padding: 10px;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  .profile-card {
+    padding: 15px;
+  }
+  
+  .profile-title-link {
+    font-size: 1.2rem;
   }
 }

@@ -2,96 +2,107 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import './App.css';
-import './BusinessProfile.css';
-import Header from './Header';
-import Footer from './Footer';
-import BusinessProfileForm from './BusinessProfileForm';
-
-// You will create this component next
+import BusinessProfileList from './BusinessProfileList';
 import BusinessProfileDetail from './BusinessProfileDetail';
+import BusinessProfileForm from './BusinessProfileForm';
+import Register from './Register';
+import Login from './Login';
+import './App.css';
 
 function App() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [auth, setAuth] = useState({
+    isAuthenticated: false,
+    accessToken: null,
+  });
 
-  // Function to fetch all existing profiles from the backend
+  // This useEffect hook runs once on initial component load
+  // to check for an existing token in local storage.
+  useEffect(() => {
+    const storedToken = localStorage.getItem('access_token');
+    if (storedToken) {
+      setAuth({
+        isAuthenticated: true,
+        accessToken: storedToken,
+      });
+    }
+  }, []);
+
   const fetchProfiles = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/profiles/');
-      if (response.ok) {
-        const data = await response.json();
-        setProfiles(data);
-      } else {
-        console.error('Failed to fetch profiles:', response.statusText);
+      if (!response.ok) {
+        throw new Error('Failed to fetch profiles');
       }
+      const data = await response.json();
+      setProfiles(data);
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
-    } finally {
+      setError(error.message);
       setLoading(false);
     }
   };
 
-  // Function to submit a new profile, including file uploads
-  const submitProfile = async (formData) => {
-    try {
-      const response = await fetch('http://localhost:8000/api/profiles/', {
-        method: 'POST',
-        body: formData, // Send formData directly for file uploads
-      });
-      if (response.ok) {
-        const newProfile = await response.json();
-        setProfiles([...profiles, newProfile]);
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to submit profile:', errorData);
-      }
-    } catch (error) {
-      console.error('Error submitting profile:', error);
-    }
-  };
-
-  // The useEffect hook runs once when the component mounts
   useEffect(() => {
     fetchProfiles();
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleCreateProfile = (newProfile) => {
+    setProfiles([...profiles, newProfile]);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setAuth({
+      isAuthenticated: false,
+      accessToken: null,
+    });
+  };
 
   return (
     <Router>
       <div className="App">
-        <Header />
-        <main>
+        <header className="App-header">
+          <nav className="navbar">
+            <div className="logo-container">
+              <Link to="/" className="logo-link">Showpur Business Pages</Link>
+            </div>
+            <div className="nav-links">
+              {auth.isAuthenticated ? (
+                <>
+                  <Link to="/create-profile" className="nav-link">Create Profile</Link>
+                  <button onClick={handleLogout} className="nav-button">Logout</button>
+                </>
+              ) : (
+                <>
+                  <Link to="/register" className="nav-link">Register</Link>
+                  <Link to="/login" className="nav-link">Log In</Link>
+                </>
+              )}
+            </div>
+          </nav>
+        </header>
+
+        <main className="App-main">
           <Routes>
-            <Route path="/" element={
-              <>
-                <h1>Showpur Business Pages</h1>
-                {profiles.length > 0 ? (
-                  <div className="profiles-container">
-                    {profiles.map(profile => (
-                      <div key={profile.id} className="business-page">
-                        <Link to={`/profiles/${profile.id}`}>
-                          <h2>{profile.business_name}</h2>
-                        </Link>
-                        <p>{profile.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <p>No profiles found. Create the first one!</p>
-                    <BusinessProfileForm onSubmit={submitProfile} />
-                  </>
-                )}
-              </>
-            } />
+            <Route path="/" element={<BusinessProfileList profiles={profiles} loading={loading} error={error} />} />
             <Route path="/profiles/:id" element={<BusinessProfileDetail />} />
+            <Route path="/create-profile" element={<BusinessProfileForm onCreate={handleCreateProfile} accessToken={auth.accessToken} />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login setAuth={setAuth} />} />
           </Routes>
         </main>
-        <Footer />
+
+        <footer className="App-footer">
+          <p>© 2025 Showpur. All rights reserved.</p>
+          <div className="social-links">
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          </div>
+        </footer>
       </div>
     </Router>
   );

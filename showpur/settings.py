@@ -135,6 +135,7 @@ INSTALLED_APPS = [
     'corsheaders',  
     'rest_framework',
     'core',
+    'rest_framework.authtoken', # Add this line for token management
 ]
 
 MIDDLEWARE = [
@@ -203,6 +204,12 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # showpur/settings.py
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 ...
 

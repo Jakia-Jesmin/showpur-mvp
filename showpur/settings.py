@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -121,7 +122,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# settings.py
+# showpur/settings.py
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -131,11 +132,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Your new apps go here:
-    'corsheaders',  
-    'rest_framework',
+    # 🛑 CRITICAL APPS FOR API 🛑
+    'corsheaders',      # For cross-origin requests
+    'rest_framework',   # Django REST Framework
+    'django_filters',   # For search/filtering
+    
+    # 🛑 CRITICAL: JWT AUTHENTICATION LIBRARY 🛑
+    'rest_framework_simplejwt', 
+    
+    # Your project app
     'core',
-    'rest_framework.authtoken', # Add this line for token management
 ]
 
 MIDDLEWARE = [
@@ -192,9 +198,11 @@ CORS_ALLOWED_ORIGINS = [
 
 # Allow specific headers
 CORS_ALLOW_HEADERS = [
+    # CRITICAL: This allows the 'authorization' header to be passed
+    'authorization', 
+    # ... rest of your headers
     'accept',
     'accept-encoding',
-    'authorization',
     'content-type',
     'dnt',
     'origin',
@@ -205,13 +213,26 @@ CORS_ALLOW_HEADERS = [
 
 # showpur/settings.py
 
+# 🛑 CRITICAL: COMBINE AND DEFINE DRF SETTINGS 🛑
 REST_FRAMEWORK = {
+    # 🛑 THIS FIXES THE 403 ERROR 🛑
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Optional: Keep SessionAuthentication for DRF browser login
+        'rest_framework.authentication.SessionAuthentication', 
+    ),
+    
+    'DEFAULT_PERMISSION_CLASSES': (
+        # Use this to lock down the entire API by default if needed, 
+        # but for now, rely on view-level permissions.
+        # 'rest_framework.permissions.IsAuthenticated',
+    ),
+    
+    # Add filtering backend
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
     ),
 }
-
-...
 
 # Media files (for user-uploaded content)
 MEDIA_URL = '/media/'

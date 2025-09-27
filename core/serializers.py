@@ -4,8 +4,27 @@ from rest_framework import serializers
 from .models import BusinessProfile
 from django.contrib.auth.models import User
 
-# Existing serializer
+# Updated Business Profile Serializer
 class BusinessProfileSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- This is key
+
+    # Add this line to expose the user's ID for ownership checks
+    user = serializers.ReadOnlyField(source='user.id') 
+    
+    # Override fields to make them optional on submission
+    description = serializers.CharField(required=False, allow_blank=True)
+    
+    # Remove max_length here; let the model's CharField define it
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+    
+    address = serializers.CharField(required=False, allow_blank=True)
+    website = serializers.URLField(required=False, allow_blank=True)
+    facebook_page = serializers.URLField(required=False, allow_blank=True)
+    
+    # File fields require only required=False
+    logo = serializers.ImageField(required=False)
+    cover_photo = serializers.ImageField(required=False)
+
     class Meta:
         model = BusinessProfile
         fields = '__all__'

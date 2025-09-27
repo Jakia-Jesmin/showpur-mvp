@@ -1,111 +1,126 @@
 // frontend/src/App.js
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import UserProfile from './UserProfile'; 
 import BusinessProfileList from './BusinessProfileList';
 import BusinessProfileDetail from './BusinessProfileDetail';
 import BusinessProfileForm from './BusinessProfileForm';
 import Register from './Register';
 import Login from './Login';
+import Header from './Header'; // 🛑 Assuming you move the header into its own component
 import './App.css';
 
+// Note: The redundant state (profiles, loading, error, fetchProfiles) 
+// has been removed as BusinessProfileList now manages its own state for searching.
+
 function App() {
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [auth, setAuth] = useState({
-    isAuthenticated: false,
-    accessToken: null,
-  });
-
-  // This useEffect hook runs once on initial component load
-  // to check for an existing token in local storage.
-  useEffect(() => {
-    const storedToken = localStorage.getItem('access_token');
-    if (storedToken) {
-      setAuth({
-        isAuthenticated: true,
-        accessToken: storedToken,
-      });
-    }
-  }, []);
-
-  const fetchProfiles = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/profiles/');
-      if (!response.ok) {
-        throw new Error('Failed to fetch profiles');
-      }
-      const data = await response.json();
-      setProfiles(data);
-      setLoading(false);
-    } catch (error) {
-      setError(error.message);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfiles();
-  }, []);
-
-  const handleCreateProfile = (newProfile) => {
-    setProfiles([...profiles, newProfile]);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setAuth({
-      isAuthenticated: false,
-      accessToken: null,
+    // Consolidated Auth State
+    const [auth, setAuth] = useState({
+        isAuthenticated: false,
+        accessToken: null,
+        userId: null, 
     });
-  };
 
-  return (
-    <Router>
-      <div className="App">
-        <header className="App-header">
-          <nav className="navbar">
-            <div className="logo-container">
-              <Link to="/" className="logo-link">Showpur Business Pages</Link>
+    // --- 1. Initial Load: Check for stored tokens ---
+    useEffect(() => {
+        const storedToken = localStorage.getItem('access_token');
+        const storedUserId = localStorage.getItem('user_id'); 
+        if (storedToken && storedUserId) {
+            setAuth({
+                isAuthenticated: true,
+                accessToken: storedToken,
+                userId: parseInt(storedUserId),
+            });
+        }
+    }, []);
+
+    // --- 2. Logout Handler ---
+    const handleLogout = () => {
+        // Clear all user data from storage
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_id'); 
+        
+        // Reset auth state
+        setAuth({
+            isAuthenticated: false,
+            accessToken: null,
+            userId: null,
+        });
+    };
+
+    // --- 3. Profile Creation Stub (No longer needed for state in App.js) ---
+    // The list component now fetches fresh data after create/update/delete.
+    // The BusinessProfileForm component can simply navigate('/') after success.
+    const handleProfileAction = (/* data */) => {
+        // This function is now mostly a placeholder or can be removed if the form 
+        // handles redirection fully on its own. We'll keep it simple and let the form redirect.
+        console.log("Profile action completed. Redirecting to list.");
+    };
+
+    return (
+        <Router>
+            <div className="App">
+                {/* 🛑 USING SEPARATE HEADER COMPONENT 🛑 */}
+                <Header 
+                    isAuthenticated={auth.isAuthenticated} 
+                    handleLogout={handleLogout} 
+                />
+
+                <main className="App-main">
+                    <Routes>
+                        {/* 1. PUBLIC ROUTES (Home/List) */}
+                        {/* 🛑 Keep only ONE route for the homepage 🛑 */}
+                        <Route path="/" element={<BusinessProfileList />} /> 
+                        
+                        {/* 2. AUTHENTICATION ROUTES */}
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/login" element={<Login setAuth={setAuth} />} />
+
+                        {/* 3. CORE CRUD ROUTES */}
+                        <Route path="/profiles/:id" element={<BusinessProfileDetail currentUserId={auth.userId} />} />
+                        <Route 
+                            path="/create-profile" 
+                            element={<BusinessProfileForm 
+                                onCreate={handleProfileAction} 
+                                accessToken={auth.accessToken} 
+                            />} 
+                        />
+                        <Route 
+                            path="/profiles/edit/:id" 
+                            element={<BusinessProfileForm 
+                                onCreate={handleProfileAction} // Re-use
+                                accessToken={auth.accessToken} 
+                                isEditMode={true}
+                            />} 
+                        />
+
+                        {/* 🛑 NEW: USER PROFILE MANAGEMENT ROUTE 🛑 */}
+                        <Route 
+                            path="/profile" 
+                            element={
+                                <UserProfile 
+                                    accessToken={auth.accessToken} 
+                                    setAuth={setAuth} 
+                                />
+                            } 
+                        />
+                        
+                    </Routes>
+                </main>
+
+                {/* 4. FOOTER (Moved here for clean separation from header) */}
+                <footer className="App-footer">
+                    <p>© {new Date().getFullYear()} Showpur. All rights reserved.</p>
+                    <div className="social-links">
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
+                        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    </div>
+                </footer>
             </div>
-            <div className="nav-links">
-              {auth.isAuthenticated ? (
-                <>
-                  <Link to="/create-profile" className="nav-link">Create Profile</Link>
-                  <button onClick={handleLogout} className="nav-button">Logout</button>
-                </>
-              ) : (
-                <>
-                  <Link to="/register" className="nav-link">Register</Link>
-                  <Link to="/login" className="nav-link">Log In</Link>
-                </>
-              )}
-            </div>
-          </nav>
-        </header>
-
-        <main className="App-main">
-          <Routes>
-            <Route path="/" element={<BusinessProfileList profiles={profiles} loading={loading} error={error} />} />
-            <Route path="/profiles/:id" element={<BusinessProfileDetail />} />
-            <Route path="/create-profile" element={<BusinessProfileForm onCreate={handleCreateProfile} accessToken={auth.accessToken} />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login setAuth={setAuth} />} />
-          </Routes>
-        </main>
-
-        <footer className="App-footer">
-          <p>© 2025 Showpur. All rights reserved.</p>
-          <div className="social-links">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          </div>
-        </footer>
-      </div>
-    </Router>
-  );
+        </Router>
+    );
 }
 
 export default App;

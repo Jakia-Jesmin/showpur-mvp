@@ -1,59 +1,122 @@
-# core/views.py
+# core/views.py (The final, correctly structured file)
 
-from rest_framework import generics
-from rest_framework import filters
-# Import necessary permissions
+from rest_framework import generics, filters, status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-# We will NOT use APIView or Response for UserDetailView
-# from rest_framework.views import APIView 
-# from rest_framework.response import Response 
-
-# Assuming this file exists and contains the IsOwnerOrReadOnly class
-from .permissions import IsOwnerOrReadOnly 
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.contrib.auth.models import User
-from .models import BusinessProfile
-from .serializers import BusinessProfileSerializer, UserSerializer
+from .models import BusinessProfile, InventoryAllocation
+# Import all required serializers
+from .serializers import BusinessProfileSerializer, UserSerializer, ShowroomInventorySerializer 
+# Import all required permissions
+from .permissions import IsOwnerOrReadOnly, IsShowroomManager 
+# Import custom token serializer
+from .token_serializers import MyTokenObtainPairSerializer 
+from rest_framework_simplejwt.views import TokenObtainPairView # Base class for our custom view
 
-# 1. View for listing all profiles and creating a new profile
+
+# =========================================================================
+# 1. CORE API VIEWS (Business Profiles, Registration, User Details)
+# =========================================================================
+
 class BusinessProfileListCreateView(generics.ListCreateAPIView):
     queryset = BusinessProfile.objects.all()
     serializer_class = BusinessProfileSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] 
-    
-    # Enable search filtering
     filter_backends = [filters.SearchFilter]
     search_fields = ['business_name', 'description', 'address'] 
 
     def perform_create(self, serializer):
-        # Automatically set the user field to the currently logged-in user
         serializer.save(user=self.request.user)
 
-# 2. View for retrieving, updating, and deleting a single profile
 class BusinessProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = BusinessProfile.objects.all()
     serializer_class = BusinessProfileSerializer
-    
-    # Allows GET (Read) by anyone, but PUT/PATCH/DELETE only by the profile owner.
     permission_classes = [IsOwnerOrReadOnly] 
 
-# 3. View for user registration (accessible by anyone)
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
-# 🛑 4. CRITICAL FIX: User Detail View (Retrieve and Update) 🛑
-# This view allows the authenticated user to GET their data and PATCH/PUT to update it.
-# This fixes the 403 Forbidden error and enables the full User Profile feature.
 class UserDetailView(generics.RetrieveUpdateAPIView):
-    """
-    Allows the authenticated user to retrieve (GET) and update (PATCH/PUT) their own details.
-    """
     serializer_class = UserSerializer
-    
-    # Only authenticated users can access this view
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Ensures the view only operates on the currently logged-in user's object
         return self.request.user
+
+
+# =========================================================================
+# 2. AUTHENTICATION / JWT VIEWS
+# =========================================================================
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    """
+    Custom view using MyTokenObtainPairSerializer to add 'has_profile' claim.
+    """
+    serializer_class = MyTokenObtainPairSerializer
+
+
+# =========================================================================
+# 3. SHOWROOM MANAGER VIEWS
+# =========================================================================
+
+class ShowroomInventoryListView(generics.ListAPIView):
+    """
+    Lists inventory allocations specifically received by the logged-in user's business.
+    """
+    serializer_class = ShowroomInventorySerializer
+    # We can use IsAuthenticated here since the queryset filters by the user
+    permission_classes = [IsAuthenticated] 
+
+    def get_queryset(self):
+        user = self.request.user
+        try:
+            # Filters all InventoryAllocation objects to those received by the user's profile
+            showroom_profile = user.businessprofile 
+        except BusinessProfile.DoesNotExist:
+            return InventoryAllocation.objects.none() 
+
+        return InventoryAllocation.objects.filter(
+            receiving_business=showroom_profile
+        ).select_related('product', 'receiving_business')
+    
+
+class RecordSaleView(APIView):
+    """
+    Handles recording an offline sale by a showroom manager.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        allocation_id = request.data.get('allocation_id')
+        quantity_sold = request.data.get('quantity_sold', 1) 
+
+        try:
+            allocation = InventoryAllocation.objects.get(id=allocation_id)
+        except InventoryAllocation.DoesNotExist:
+            return Response({"error": "Inventory allocation not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Security Check: Must be the managing showroom manager
+        if allocation.receiving_business.user != request.user:
+            return Response({"error": "You do not manage this showroom's inventory."}, status=status.HTTP_403_FORBIDDEN)
+            
+        # Validation
+        if not isinstance(quantity_sold, int) or quantity_sold <= 0:
+            return Response({"error": "Quantity sold must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if allocation.quantity_remaining < quantity_sold:
+            return Response({"error": f"Cannot sell {quantity_sold} units. Only {allocation.quantity_remaining} remaining."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update Stock
+        allocation.quantity_remaining -= quantity_sold
+        allocation.sales_count += quantity_sold 
+        allocation.save()
+
+        return Response({
+            "message": "Sale recorded successfully.",
+            "product": allocation.product.name,
+            "remaining_stock": allocation.quantity_remaining
+        }, status=status.HTTP_200_OK)
+    

@@ -1,27 +1,19 @@
 # core/serializers.py
 
 from rest_framework import serializers
-from .models import BusinessProfile
+from .models import InventoryAllocation, Product, BusinessProfile
 from django.contrib.auth.models import User
 
 # Updated Business Profile Serializer
 class BusinessProfileSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- This is key
-
-    # Add this line to expose the user's ID for ownership checks
     user = serializers.ReadOnlyField(source='user.id') 
     
-    # Override fields to make them optional on submission
     description = serializers.CharField(required=False, allow_blank=True)
-    
-    # Remove max_length here; let the model's CharField define it
     phone_number = serializers.CharField(required=False, allow_blank=True)
-    
     address = serializers.CharField(required=False, allow_blank=True)
     website = serializers.URLField(required=False, allow_blank=True)
     facebook_page = serializers.URLField(required=False, allow_blank=True)
     
-    # File fields require only required=False
     logo = serializers.ImageField(required=False)
     cover_photo = serializers.ImageField(required=False)
 
@@ -44,4 +36,29 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+    
+# 🛑 CORRECT PLACEMENT: ShowroomInventorySerializer at the top level 🛑
+class ShowroomInventorySerializer(serializers.ModelSerializer):
+    # 👇 All fields must be indented once (4 spaces)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    producer_name = serializers.CharField(source='product.business.business_name', read_only=True)
+    sales_value = serializers.SerializerMethodField()
+    
+    class Meta:
+        # 👇 Meta class contents must be indented twice (8 spaces)
+        model = InventoryAllocation
+        fields = [
+            'id', 
+            'product_name', 
+            'producer_name', 
+            'quantity_allocated', 
+            'quantity_remaining', 
+            'sales_count', 
+            'sales_value',
+            'product',
+        ]
+    
+    def get_sales_value(self, obj):
+        # 👇 Method contents must be indented twice (8 spaces)
+        return obj.sales_count * obj.product.retail_price
     

@@ -10,6 +10,12 @@ import Register from './Register';
 import Login from './Login';
 import Header from './Header'; // 🛑 Assuming you move the header into its own component
 import './App.css';
+import RecordSaleForm from './RecordSaleForm'; // <-- IMPORT
+import ShowroomDashboard from './ShowroomDashboard';
+
+
+// 🛑 IMPORT THE NEW UTILITY 🛑
+import { refreshAccessToken } from './utils/auth'; 
 
 // Note: The redundant state (profiles, loading, error, fetchProfiles) 
 // has been removed as BusinessProfileList now manages its own state for searching.
@@ -106,7 +112,25 @@ function App() {
                                 />
                             } 
                         />
-                        
+                        {/* 🛑 NEW SALES RECORDING ROUTE 🛑 */}
+                        <Route 
+                            path="/sales/record" 
+                            element={<RecordSaleForm accessToken={auth.accessToken} />} 
+                        />
+                        <Route 
+                        path="/sales/record" 
+                        element={
+                            <RecordSaleForm 
+                                accessToken={auth.accessToken} 
+                                // 🛑 PASS THE FUNCTION AS A PROP 🛑
+                                refreshAccessToken={refreshAccessToken} 
+                            />
+                        } 
+                    />
+                        <Route 
+                        path="/dashboard/showroom" 
+                        element={<ShowroomDashboard accessToken={auth.accessToken} />} 
+                    />
                     </Routes>
                 </main>
 

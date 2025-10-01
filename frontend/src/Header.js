@@ -10,7 +10,7 @@ function Header({ isAuthenticated, handleLogout }) {
         <header className="navbar">
             <div className="navbar-logo">
                 {/* Use <Link> instead of <a> for React routing */}
-                <Link to="/" className="logo-link">Showpur Directory</Link>
+                <Link to="/" className="logo-link">Showpur</Link>
             </div>
             <nav className="navbar-links">
                 {isAuthenticated ? (

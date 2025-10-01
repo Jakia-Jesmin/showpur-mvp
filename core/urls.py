@@ -1,7 +1,9 @@
 # core/urls.py
 
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from . import views
+from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView,)
+from .views import MyTokenObtainPairView
 
 # 🛑 UPDATE IMPORTS: Include UserDetailView 🛑
 # We need to import the entire 'views' module to access UserDetailView and UserCreateView
@@ -32,4 +34,14 @@ urlpatterns = [
 
     # 🛑 NEW URL: Get current user details after login 🛑
     path('auth/user/', UserDetailView.as_view(), name='user-detail'),
+
+    # SALES TRACKING PATH 🛑 NEW 🛑
+    path('sales/record/', views.RecordSaleView.as_view(), name='record-sale'),
+
+    # SHOWROOM INVENTORY DASHBOARD 🛑 NEW 🛑
+    path('dashboard/showroom/inventory/', views.ShowroomInventoryListView.as_view(), name='showroom-inventory-list'),
+    
+    # Ensure your custom serializer is used here
+    path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'), 
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

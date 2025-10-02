@@ -1,13 +1,17 @@
-// frontend/src/UserProfile.js
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import refreshAccessToken from './utils/api'; 
+import { Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import api from './api/api'; // Use the custom Axios client with interceptors
 import './UserProfile.css';
 
-// Component receives auth tokens and setAuth function from App.js
-function UserProfile({ accessToken, setAuth }) {
+// Component receives setAuth function (for logout/password change)
+function UserProfile({ setAuth }) {
     const navigate = useNavigate();
+    const location = useLocation(); // To check the current path
+    
+    // State to hold the user's business profile ID
+    const [businessProfileId, setBusinessProfileId] = useState(null); 
+    
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -18,47 +22,56 @@ function UserProfile({ accessToken, setAuth }) {
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState('');
 
-    // --- 1. Fetch User Data (GET) ---
+    // --- 1. Fetch User Data & Check for Business Profile (GET) ---
     useEffect(() => {
-        const fetchUser = async () => {
-            if (!accessToken) {
-                navigate('/login');
-                return;
-            }
-
+        const fetchUserAndProfile = async () => {
+            // No need to check for accessToken here; the api interceptor handles the 401/redirect
             try {
-                const response = await fetch('http://localhost:8000/api/auth/user/', {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
+                // Fetch basic user data using the authenticated API client
+                const userResponse = await api.get('auth/user/');
+                const userData = userResponse.data;
+                
+                setFormData(prev => ({
+                    ...prev,
+                    username: userData.username,
+                    email: userData.email,
+                }));
+                
+                // Fetch the user's associated business profile (assuming a dedicated endpoint or filtered list)
+                // Assuming RidaBadam owns a profile, this will return it.
+                const profilesResponse = await api.get('profiles/?owner=current'); 
+                const ownedProfiles = profilesResponse.data;
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setFormData(prev => ({
-                        ...prev,
-                        username: data.username,
-                        email: data.email,
-                    }));
-                } else if (response.status === 401) {
-                    // Token expired, attempt refresh
-                    // NOTE: You must ensure refreshAccessToken is defined in ./utils/api
-                    const newAccessToken = await refreshAccessToken(); 
-                    if (newAccessToken) {
-                        await fetchUser(); // Retry fetch
-                    } else {
-                        navigate('/login');
+                if (ownedProfiles.length > 0) {
+                    const profileId = ownedProfiles[0].id;
+                    setBusinessProfileId(profileId);
+                    
+                    // 🛑 NEW: CONDITIONAL REDIRECT LOGIC 🛑
+                    // If the user is on the specific /profile route AND owns a profile,
+                    // redirect them to their business profile detail page immediately.
+                    // This resolves the ambiguity of 'My Account'.
+                    if (location.pathname === '/profile') {
+                        navigate(`/profiles/${profileId}`, { replace: true });
+                        return; // Stop execution
                     }
-                } else {
-                    console.error("Failed to fetch user:", response.status);
-                    navigate('/'); 
                 }
+
             } catch (error) {
-                console.error("Network error fetching user data:", error);
+                // The interceptor should handle 401 (token refresh/logout). 
+                // This catch handles network errors or other propagated non-401 errors.
+                console.error("Error fetching user data or profile:", error);
+                const status = error.response?.status;
+                if (status !== 401) { // 401 is handled, others may need user feedback
+                    setMessage(`Failed to load profile data. Status: ${status || 'Network Error'}`);
+                    // Optionally, redirect home if a critical error occurs
+                    // navigate('/'); 
+                }
             } finally {
                 setLoading(false);
             }
         };
-        fetchUser();
-    }, [accessToken, navigate]);
+        fetchUserAndProfile();
+    }, [navigate, location.pathname]); // Dependency on path is crucial for conditional redirect
 
 
     const handleChange = (e) => {
@@ -85,65 +98,52 @@ function UserProfile({ accessToken, setAuth }) {
             dataToSubmit.password = formData.password;
         }
 
-        const makeRequest = async (token) => {
-            return fetch('http://localhost:8000/api/auth/user/', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify(dataToSubmit)
-            });
-        };
-
-        let currentAccessToken = accessToken;
-
         try {
-            let response = await makeRequest(currentAccessToken);
+            // 🛑 Use api.patch() for the update 🛑
+            await api.patch('auth/user/', dataToSubmit);
 
-            if (response.status === 401) {
-                const newAccessToken = await refreshAccessToken();
-                if (newAccessToken) {
-                    currentAccessToken = newAccessToken;
-                    response = await makeRequest(currentAccessToken); // Retry
-                }
-            }
-
-            if (response.ok) {
-                setMessage('Profile updated successfully!');
-                setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-                
-                if (dataToSubmit.password) {
-                    // Force re-login after password change for security
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user_id'); 
-                    setAuth({ accessToken: null, userId: null });
-                    alert("Password updated. Please log in again with your new credentials.");
-                    navigate('/login');
-                }
-            } else {
-                const errorData = await response.json();
-                setErrors(errorData);
-                setMessage('Failed to update profile.');
+            setMessage('Profile updated successfully!');
+            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            
+            if (dataToSubmit.password) {
+                // Force re-login after password change for security
+                alert("Password updated. Please log in again with your new credentials.");
+                setAuth({ isAuthenticated: false, accessToken: null, userId: null });
+                navigate('/login');
             }
 
         } catch (error) {
             console.error("Submission error:", error);
-            setMessage('Network error during update.');
+            const status = error.response?.status;
+            const errorData = error.response?.data || {};
+            
+            if (status === 400) {
+                // Handle validation errors from Django
+                setErrors(errorData);
+            }
+            setMessage(`Failed to update profile. Status: ${status || 'Network Error'}`);
         }
     };
     
+    // The redirect logic above should stop rendering if a redirect occurs.
     if (loading) return <div className="profile-container">Loading user data...</div>;
 
     return (
         <div className="profile-container">
-            <h1>My Account</h1>
+            {/* If the user is on /profile but has a business, they are redirected, 
+                so this component only renders for users without a business profile 
+                or in case the redirect logic above is removed. */}
+            <h1>My Account Settings</h1>
+            {businessProfileId && (
+                <p className="business-link-info">
+                    You currently own a business profile. <Link to={`/profiles/${businessProfileId}`}>View/Edit your Business Profile.</Link>
+                </p>
+            )}
             <p className={`status-message ${message.includes('successfully') ? 'success' : message ? 'error' : ''}`}>{message}</p>
             
-            {/* ... (rest of the form content) ... */}
             <form onSubmit={handleSubmit} className="user-profile-form">
                 
+                {/* Username Group */}
                 <div className="form-group">
                     <label>Username</label>
                     <input
@@ -156,6 +156,7 @@ function UserProfile({ accessToken, setAuth }) {
                     {errors.username && <p className="error">{errors.username}</p>}
                 </div>
                 
+                {/* Email Group */}
                 <div className="form-group">
                     <label>Email</label>
                     <input
@@ -171,6 +172,7 @@ function UserProfile({ accessToken, setAuth }) {
                 <hr />
                 <h2 className="password-heading">Change Password (Optional)</h2>
 
+                {/* New Password Group */}
                 <div className="form-group">
                     <label>New Password</label>
                     <input
@@ -183,6 +185,7 @@ function UserProfile({ accessToken, setAuth }) {
                     {errors.password && <p className="error">{errors.password}</p>}
                 </div>
 
+                {/* Confirm New Password Group */}
                 <div className="form-group">
                     <label>Confirm New Password</label>
                     <input

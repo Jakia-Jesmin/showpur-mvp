@@ -1,13 +1,13 @@
 // frontend/src/BusinessProfileForm.js
 
-import React, { useState, useEffect } from 'react'; // <-- ADDED useEffect
-import { useNavigate, useParams } from 'react-router-dom'; // <-- ADDED useParams
-import refreshAccessToken from './utils/api'; 
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import api from './api/api'; // 🛑 Import the custom Axios client 🛑
 import './BusinessProfileForm.css';
 
-// Component now accepts the new 'isEditMode' prop
-function BusinessProfileForm({ onCreate, accessToken, isEditMode }) { 
-    const { id } = useParams(); // Get the profile ID from the URL (only available in edit mode)
+// Removed 'accessToken' prop as the 'api' client handles it internally
+function BusinessProfileForm({ onCreate, isEditMode }) { 
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -18,11 +18,15 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
         address: '',
         website: '',
         facebook_page: '',
+        // File fields start as null to differentiate from empty strings
         logo: null,
         cover_photo: null
     });
     const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start loading in edit mode
+    
+    // Add a separate state to store the initial profile data (for visual hints if needed)
+    const [initialProfile, setInitialProfile] = useState(null); 
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -33,121 +37,116 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
     };
     
 // --- 1. Load Data for Editing (useEffect) ---
-    useEffect(() => {
-        // Only run this logic if we are in edit mode and have an ID
-        if (isEditMode && id) {
-            const fetchProfileData = async () => {
-                try {
-                    const response = await fetch(`http://localhost:8000/api/profiles/${id}/`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        // Set the form data, handling null/undefined URL fields returned from Django
-                        setFormData({
-                            business_name: data.business_name || '',
-                            description: data.description || '',
-                            contact_email: data.contact_email || '',
-                            phone_number: data.phone_number || '',
-                            address: data.address || '',
-                            website: data.website || '',
-                            facebook_page: data.facebook_page || '',
-                            // File inputs (logo, cover_photo) must be reset to null to avoid console warnings
-                            logo: null,
-                            cover_photo: null
-                        });
-                    } else {
-                        // If profile is not found (404), redirect away
-                        navigate('/'); 
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch profile for editing:", error);
-                }
-            };
-            fetchProfileData();
-        }
-    }, [isEditMode, id, navigate]); // Dependencies for useEffect
-
-
-// --- 2. Centralized Request Helper ---
-    // This helper now accepts method and url, making it reusable for POST and PATCH
-    const makeRequest = async (token, method, url) => {
-        const form = new FormData();
-        // Append form data, only sending non-null/non-empty fields 
-        // (Crucial for PATCH requests with FormData)
-        for (const key in formData) {
-            // Skip the file fields if they are null (user didn't select a new file)
-            if (formData[key] !== null) {
-                 // For text fields, ensure we don't send empty strings if they're optional
-                if (typeof formData[key] === 'string' && formData[key].trim() === '' && !formData[key]) {
-                    continue; 
-                }
-                form.append(key, formData[key]);
-            }
+    const fetchProfileData = useCallback(async () => {
+        if (!isEditMode || !id) {
+            setLoading(false);
+            return;
         }
         
-        return fetch(url, {
-            method: method, // Use the determined method (POST or PATCH)
-            body: form,
-            headers: {
-                'Authorization': `Bearer ${token}` 
-            }
-        });
-    };
+        setLoading(true);
+        try {
+            // Use api.get for fetching profile data
+            const response = await api.get(`profiles/${id}/`);
+            const data = response.data;
+            
+            // Store the initial profile data for context/hints
+            setInitialProfile(data);
+
+            // Set the form data from the fetched data
+            setFormData({
+                business_name: data.business_name || '',
+                description: data.description || '',
+                contact_email: data.contact_email || '',
+                phone_number: data.phone_number || '',
+                address: data.address || '',
+                website: data.website || '',
+                facebook_page: data.facebook_page || '',
+                // File inputs must be reset to null when loading to avoid console warnings
+                logo: null, 
+                cover_photo: null
+            });
+            
+        } catch (error) {
+            console.error("Failed to fetch profile for editing:", error);
+            // If fetching fails, redirect away
+            navigate('/'); 
+        } finally {
+            setLoading(false);
+        }
+    }, [isEditMode, id, navigate]);
+
+    useEffect(() => {
+        fetchProfileData();
+    }, [fetchProfileData]);
 
 
-// --- 3. Handle Submit with Refresh Logic ---
+// --- 2. Handle Submission (POST/PATCH with Axios and FormData) ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setErrors({});
 
-        // Determine method and URL based on edit mode
-        const method = isEditMode ? 'PATCH' : 'POST';
-        const url = isEditMode ? `http://localhost:8000/api/profiles/${id}/` : 'http://localhost:8000/api/profiles/';
+        // 🛑 Convert the React state to FormData for submission 🛑
+        const form = new FormData();
         
-        let currentAccessToken = accessToken;
-
-        try {
-            // Attempt 1: Try the request with the current access token
-            let response = await makeRequest(currentAccessToken, method, url);
-
-            // --- TOKEN REFRESH LOGIC ---
-            if (response.status === 401) {
-                console.log("Access token expired. Attempting refresh...");
+        for (const key in formData) {
+            const value = formData[key];
+            
+            // Crucial: Only append values that are not null. 
+            // This prevents sending `null` for optional text fields or `null` for files the user didn't select.
+            if (value !== null && value !== undefined) {
+                // If it's a string and empty, and we are PATCHing, skip it entirely 
+                // to prevent Django from treating it as a change to an empty string.
+                // NOTE: If the user explicitly wants to clear a field, they'll send an empty string, 
+                // which might be fine depending on the backend model requirements.
                 
-                // Try to get a new access token and update the local variable
-                const newAccessToken = await refreshAccessToken();
-                currentAccessToken = newAccessToken;
-                
-                // Attempt 2: Retry the request with the new token
-                response = await makeRequest(currentAccessToken, method, url);
-            }
-            // --- END TOKEN REFRESH LOGIC ---
-
-
-            if (response.ok) {
-                const resultProfile = await response.json();
-                onCreate(resultProfile); // Notify App.js of creation/update
-                
-                // Navigate to the detail view of the new/updated profile
-                navigate(`/profiles/${resultProfile.id}`); 
-            } else {
-                // Handle errors after retry (400, 403, or 401 fail)
-                const errorData = await response.json();
-                
-                if (response.status === 401) {
-                    // If it's STILL 401 after refresh, the refresh token failed
-                    navigate('/login'); 
-                    console.error('Both tokens expired. Please log in again.');
-                } else {
-                    setErrors(errorData); // Display validation errors for 400
+                // For robustness, we skip file fields that are null/undefined (user didn't choose a new file)
+                if (key === 'logo' || key === 'cover_photo') {
+                    if (value instanceof File) {
+                        form.append(key, value);
+                    }
+                } else if (typeof value === 'string' && value.trim() !== '') {
+                    form.append(key, value);
+                } else if (typeof value === 'string' && value.trim() === '' && !isEditMode) {
+                    // In POST (create) mode, send empty strings if necessary for required fields
+                    form.append(key, value);
+                } else if (typeof value !== 'string') {
+                     // For non-string fields (like numbers, which you don't have here)
+                    form.append(key, value);
                 }
             }
-        } catch (error) {
-            console.error('Submission error or refresh error:', error);
+        }
+        
+        // Determine method and URL
+        const method = isEditMode ? 'patch' : 'post';
+        const url = isEditMode ? `profiles/${id}/` : 'profiles/';
+        
+        try {
+            // 🛑 Use the api client: it handles the Authorization header and token refresh automatically. 🛑
+            const response = await api({
+                method: method, // 'post' or 'patch'
+                url: url,
+                data: form, // Send the FormData object
+                // Axios automatically sets 'Content-Type': 'multipart/form-data'
+            });
+
+            const resultProfile = response.data;
+            onCreate(resultProfile); // Notify App.js 
             
-            if (String(error).includes('log in')) {
-                 navigate('/login'); // Redirect if refresh failed
+            // Navigate to the detail view of the new/updated profile
+            navigate(`/profiles/${resultProfile.id}`); 
+            
+        } catch (error) {
+            console.error('Submission error:', error.response || error);
+            const status = error.response?.status;
+            const errorData = error.response?.data;
+
+            if (status === 400 && errorData) {
+                // Display validation errors
+                setErrors(errorData); 
+            } else if (status === 401 || status === 403) {
+                 // Interceptor should handle 401/403 (e.g., redirect to login)
+                navigate('/login', { state: { message: "Session expired or unauthorized. Please log in." } });
             } else {
                 setErrors({ general: 'Failed to save profile. Please check your network connection.' });
             }
@@ -155,6 +154,11 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
             setLoading(false);
         }
     };
+
+
+    if (isEditMode && loading) {
+        return <div className="profile-form-container"><p>Loading profile for editing...</p></div>;
+    }
 
 
     return (
@@ -200,53 +204,29 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
                     {errors.contact_email && <p className="form-error">{errors.contact_email}</p>}
                 </div>
 
-                {/* --- Phone Number --- */}
+                {/* ... (Other Text Fields: Phone, Address, Website, Facebook) ... */}
+
                 <div className="form-group">
                     <label>Phone Number</label>
-                    <input
-                        type="text"
-                        name="phone_number"
-                        value={formData.phone_number}
-                        onChange={handleChange}
-                    />
+                    <input type="text" name="phone_number" value={formData.phone_number} onChange={handleChange} />
                     {errors.phone_number && <p className="form-error">{errors.phone_number}</p>}
                 </div>
-
-                {/* --- Address --- */}
                 <div className="form-group">
                     <label>Address</label>
-                    <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                    />
+                    <input type="text" name="address" value={formData.address} onChange={handleChange} />
                     {errors.address && <p className="form-error">{errors.address}</p>}
                 </div>
-
-                {/* --- Website --- */}
                 <div className="form-group">
                     <label>Website</label>
-                    <input
-                        type="url"
-                        name="website"
-                        value={formData.website}
-                        onChange={handleChange}
-                    />
+                    <input type="url" name="website" value={formData.website} onChange={handleChange} />
                     {errors.website && <p className="form-error">{errors.website}</p>}
                 </div>
-
-                {/* --- Facebook Page --- */}
                 <div className="form-group">
                     <label>Facebook Page</label>
-                    <input
-                        type="url"
-                        name="facebook_page"
-                        value={formData.facebook_page}
-                        onChange={handleChange}
-                    />
+                    <input type="url" name="facebook_page" value={formData.facebook_page} onChange={handleChange} />
                     {errors.facebook_page && <p className="form-error">{errors.facebook_page}</p>}
                 </div>
+
                 
                 {/* --- Logo File --- */}
                 <div className="form-group file-upload-group">
@@ -255,10 +235,10 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
                         type="file"
                         name="logo"
                         onChange={handleChange}
+                        // accept="image/*" // Optional: restrict file types
                     />
                     {errors.logo && <p className="form-error">{errors.logo}</p>}
-                    {/* Add visual cue that a file is already uploaded if in edit mode */}
-                    {isEditMode && <p className="file-hint">Leave blank to keep existing logo.</p>}
+                    {isEditMode && initialProfile?.logo && <p className="file-hint">Current file is uploaded. Leave blank to keep existing logo.</p>}
                 </div>
 
                 {/* --- Cover Photo File --- */}
@@ -268,9 +248,10 @@ function BusinessProfileForm({ onCreate, accessToken, isEditMode }) {
                         type="file"
                         name="cover_photo"
                         onChange={handleChange}
+                        // accept="image/*" // Optional: restrict file types
                     />
                     {errors.cover_photo && <p className="form-error">{errors.cover_photo}</p>}
-                    {isEditMode && <p className="file-hint">Leave blank to keep existing photo.</p>}
+                    {isEditMode && initialProfile?.cover_photo && <p className="file-hint">Current file is uploaded. Leave blank to keep existing photo.</p>}
                 </div>
 
                 <button type="submit" disabled={loading}>

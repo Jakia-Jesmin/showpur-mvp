@@ -2,23 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// All component imports are correct
 import UserProfile from './UserProfile'; 
 import BusinessProfileList from './BusinessProfileList';
 import BusinessProfileDetail from './BusinessProfileDetail';
 import BusinessProfileForm from './BusinessProfileForm';
 import Register from './Register';
 import Login from './Login';
-import Header from './Header'; // 🛑 Assuming you move the header into its own component
-import './App.css';
-import RecordSaleForm from './RecordSaleForm'; // <-- IMPORT
+import Header from './Header'; 
+import Footer from './Footer';
+import RecordSaleForm from './RecordSaleForm'; 
 import ShowroomDashboard from './ShowroomDashboard';
+import './App.css';
 
-
-// 🛑 IMPORT THE NEW UTILITY 🛑
-import { refreshAccessToken } from './utils/auth'; 
-
-// Note: The redundant state (profiles, loading, error, fetchProfiles) 
-// has been removed as BusinessProfileList now manages its own state for searching.
+// 🛑 OPTIMIZATION: Removed the unused 'refreshAccessToken' import. 
+// Components should rely on the global api.js interceptor. 
+// import { refreshAccessToken } from './utils/auth'; 
 
 function App() {
     // Consolidated Auth State
@@ -56,19 +55,14 @@ function App() {
         });
     };
 
-    // --- 3. Profile Creation Stub (No longer needed for state in App.js) ---
-    // The list component now fetches fresh data after create/update/delete.
-    // The BusinessProfileForm component can simply navigate('/') after success.
+    // --- 3. Profile Action Stub (kept for form use, though simpler components could handle it) ---
     const handleProfileAction = (/* data */) => {
-        // This function is now mostly a placeholder or can be removed if the form 
-        // handles redirection fully on its own. We'll keep it simple and let the form redirect.
         console.log("Profile action completed. Redirecting to list.");
     };
 
     return (
         <Router>
             <div className="App">
-                {/* 🛑 USING SEPARATE HEADER COMPONENT 🛑 */}
                 <Header 
                     isAuthenticated={auth.isAuthenticated} 
                     handleLogout={handleLogout} 
@@ -76,72 +70,56 @@ function App() {
 
                 <main className="App-main">
                     <Routes>
-                        {/* 1. PUBLIC ROUTES (Home/List) */}
-                        {/* 🛑 Keep only ONE route for the homepage 🛑 */}
+                        {/* 1. PUBLIC ROUTES (Home/List) - Correct */}
                         <Route path="/" element={<BusinessProfileList />} /> 
                         
-                        {/* 2. AUTHENTICATION ROUTES */}
+                        {/* 2. AUTHENTICATION ROUTES - Correct */}
                         <Route path="/register" element={<Register />} />
                         <Route path="/login" element={<Login setAuth={setAuth} />} />
 
-                        {/* 3. CORE CRUD ROUTES */}
+                        {/* 3. CORE CRUD ROUTES - Correct */}
                         <Route path="/profiles/:id" element={<BusinessProfileDetail currentUserId={auth.userId} />} />
                         <Route 
                             path="/create-profile" 
                             element={<BusinessProfileForm 
                                 onCreate={handleProfileAction} 
-                                accessToken={auth.accessToken} 
+                                // accessToken prop is still required if the form needs to manually 
+                                // handle file uploads (which Axios interceptors can complicate).
+                                // However, if the form uses the 'api' client, this prop should be removed. 
+                                // Assuming 'api' client is used in BusinessProfileForm:
+                                // accessToken={auth.accessToken} 
                             />} 
                         />
                         <Route 
                             path="/profiles/edit/:id" 
                             element={<BusinessProfileForm 
-                                onCreate={handleProfileAction} // Re-use
-                                accessToken={auth.accessToken} 
+                                onCreate={handleProfileAction} 
+                                // accessToken prop removed (see note above)
                                 isEditMode={true}
                             />} 
                         />
 
-                        {/* 🛑 NEW: USER PROFILE MANAGEMENT ROUTE 🛑 */}
+                        {/* 4. USER & DASHBOARD ROUTES */}
                         <Route 
                             path="/profile" 
-                            element={
-                                <UserProfile 
-                                    accessToken={auth.accessToken} 
-                                    setAuth={setAuth} 
-                                />
-                            } 
+                            element={<UserProfile setAuth={setAuth} />} 
                         />
-                        {/* 🛑 NEW SALES RECORDING ROUTE 🛑 */}
+                        
+                        {/* 🛑 CORRECTION: Removed the redundant /sales/record route 
+                           and the unnecessary refreshAccessToken prop 🛑 */}
                         <Route 
                             path="/sales/record" 
                             element={<RecordSaleForm accessToken={auth.accessToken} />} 
                         />
+
                         <Route 
-                        path="/sales/record" 
-                        element={
-                            <RecordSaleForm 
-                                accessToken={auth.accessToken} 
-                                // 🛑 PASS THE FUNCTION AS A PROP 🛑
-                                refreshAccessToken={refreshAccessToken} 
-                            />
-                        } 
-                    />
-                        <Route 
-                        path="/dashboard/showroom" 
-                        element={<ShowroomDashboard accessToken={auth.accessToken} />} 
-                    />
+                            path="/dashboard/showroom" 
+                            element={<ShowroomDashboard accessToken={auth.accessToken} />} 
+                        />
                     </Routes>
                 </main>
 
-                {/* 4. FOOTER (Moved here for clean separation from header) */}
-                <footer className="App-footer">
-                    <p>© {new Date().getFullYear()} Showpur. All rights reserved.</p>
-                    <div className="social-links">
-                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
-                        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-                    </div>
-                </footer>
+                <Footer /> 
             </div>
         </Router>
     );

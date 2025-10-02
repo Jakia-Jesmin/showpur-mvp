@@ -2,58 +2,57 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './ShowroomDashboard.css'; // Create this file for styling
+import api from './api/api'; // 🛑 Import the custom Axios client 🛑
+import './ShowroomDashboard.css';
 
-function ShowroomDashboard({ accessToken }) {
+// 🛑 Removed accessToken prop 🛑
+function ShowroomDashboard() {
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // NOTE: In a real app, you'd use a token refresh utility here if the token is expired.
-    // For now, we rely on the token being valid or the user being redirected to login 
-    // by a centralized router logic if the token fails.
-
     useEffect(() => {
-        if (!accessToken) {
-            // User is not authenticated, navigate to login
+        // Fast-fail check: If tokens aren't even in local storage, go to login immediately.
+        // The interceptor will also do this if the API call fails with 401/403.
+        if (!localStorage.getItem('access_token')) {
             navigate('/login');
             return;
         }
 
         const fetchInventory = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/dashboard/showroom/inventory/', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
+                // 🛑 Use api.get: Authorization and Refresh Logic are handled by the interceptor. 🛑
+                const response = await api.get('dashboard/showroom/inventory/');
 
-                if (response.status === 401 || response.status === 403) {
-                    // Unauthorized or Forbidden: token might be expired or invalid
-                    setError("Session expired or access denied. Please log in again.");
-                    setLoading(false);
-                    // In a production app, you would call refreshAccessToken() here.
-                    return; 
-                }
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch inventory: ${response.statusText}`);
-                }
-
-                const data = await response.json();
+                // Axios automatically throws on 4xx/5xx, so we only handle successful data here
+                const data = response.data;
                 setInventory(data);
+
             } catch (err) {
-                setError(err.message);
+                console.error("Dashboard fetch error:", err.response || err);
+                
+                let errorMessage = "Failed to fetch inventory data.";
+                
+                // Handle 401/403 errors which typically mean the refresh token failed
+                if (err.response?.status === 401 || err.response?.status === 403) {
+                    errorMessage = "Session expired or access denied. Redirecting to login.";
+                    // The interceptor should handle the redirection, but we set the message here
+                    setTimeout(() => navigate('/login'), 1500);
+                } else if (err.response?.status === 404) {
+                    errorMessage = "Inventory list not found. Check API endpoint.";
+                } else {
+                    errorMessage = `Network error: ${err.message}`;
+                }
+
+                setError(errorMessage);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchInventory();
-    }, [accessToken, navigate]);
+    }, [navigate]); // Depend only on navigate, as token logic is abstracted
 
     if (loading) {
         return <div className="dashboard-container">Loading inventory...</div>;
@@ -66,7 +65,7 @@ function ShowroomDashboard({ accessToken }) {
     return (
         <div className="dashboard-container">
             <h1>Showroom Inventory Dashboard</h1>
-            <p>Welcome, {inventory.length > 0 ? inventory[0].receiving_business_name : 'Manager'}. Here is the current stock allocated to your store.</p>
+            <p>Welcome, **{inventory.length > 0 ? inventory[0].receiving_business_name : 'Manager'}**. Here is the current stock allocated to your store.</p>
             
             {inventory.length === 0 ? (
                 <p className="no-inventory">You currently have no consigned inventory allocated to your store.</p>
@@ -95,9 +94,9 @@ function ShowroomDashboard({ accessToken }) {
                                 <td>{item.sales_count}</td>
                                 <td>{parseFloat(item.sales_value).toFixed(2)}</td>
                                 <td>
-                                    {/* Link to the Record Sale Form, passing the allocation ID */}
                                     <button 
                                         className="record-sale-btn"
+                                        // Pass the allocation ID as a query parameter
                                         onClick={() => navigate(`/sales/record?allocationId=${item.id}`)}
                                         disabled={item.quantity_remaining <= 0}
                                     >

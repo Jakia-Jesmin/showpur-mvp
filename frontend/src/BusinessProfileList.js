@@ -1,24 +1,21 @@
-// frontend/src/BusinessProfileList.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './BusinessProfileList.css';
+import api from './api/api'; // Correctly importing the custom Axios client
 
-// Custom hook to handle debouncing logic
+// Custom hook to handle debouncing logic (No changes needed here)
 const useDebounce = (value, delay) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
 
     useEffect(() => {
-        // Set up a timeout to update the debounced value
         const handler = setTimeout(() => {
             setDebouncedValue(value);
         }, delay);
 
-        // Cleanup function: Clear the timeout if value changes (user keeps typing)
         return () => {
             clearTimeout(handler);
         };
-    }, [value, delay]); // Only re-call effect if value or delay changes
+    }, [value, delay]);
 
     return debouncedValue;
 };
@@ -29,53 +26,60 @@ function BusinessProfileList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // 🛑 1. State for the user's immediate input (no API call dependency) 🛑
     const [liveSearchTerm, setLiveSearchTerm] = useState('');
-
-    // 🛑 2. The actual search term, delayed by 500ms 🛑
     const searchTerm = useDebounce(liveSearchTerm, 500);
 
-    // --- Data Fetching Logic (Now dependent on the DEBOUNCED 'searchTerm') ---
+    // --- Data Fetching Logic (Now uses the authenticated 'api' client) ---
     const fetchProfiles = useCallback(async () => {
-        // Only fetch if a search term exists or if we are doing the initial load
-        // We can skip the fetch if the debounced term is empty and we already have data
+        // Optimization: skip fetch if the debounced term is empty and we already have data
         if (!searchTerm && profiles.length > 0 && !loading) return; 
 
         setLoading(true); 
         setError(null);
         
-        const baseUrl = 'http://localhost:8000/api/profiles/';
-        const url = searchTerm 
-            ? `${baseUrl}?search=${encodeURIComponent(searchTerm)}` 
-            : baseUrl;
+        // Build the query string for the GET request
+        const query = searchTerm 
+            ? `?search=${encodeURIComponent(searchTerm)}` 
+            : '';
 
         try {
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                setProfiles(data);
-            } else {
-                console.error("API response not OK:", response.status);
-                setError(`Failed to load profiles (Status: ${response.status}).`);
-            }
+            // 🛑 CRITICAL FIX: Use api.get() instead of fetch() 🛑
+            // Axios handles the URL construction (base URL + 'profiles/' + query)
+            // and automatically includes the JWT token via the interceptor.
+            const response = await api.get(`profiles/${query}`); 
+
+            // Axios automatically parses JSON, so data is at response.data
+            setProfiles(response.data);
+            
         } catch (err) {
-            console.error("Network error fetching profiles:", err);
-            setError('Network error. Could not connect to the API.');
+            // Axios throws an error for 4xx/5xx status codes, which is where 
+            // the 401 Unauthorized error will be caught.
+            console.error("API Error fetching profiles:", err);
+            
+            const status = err.response?.status;
+
+            if (status === 401) {
+                // If the interceptor failed to refresh or redirect, display a prompt
+                // The interceptor should ideally handle the full logout/redirect.
+                setError("Failed to load profiles. Please ensure you are logged in.");
+            } else {
+                setError(`Failed to load profiles (Status: ${status || 'Network Error'}).`);
+            }
         } finally {
             setLoading(false);
         }
-    }, [searchTerm]); // Dependency: Only runs when the DEBOUNCED term changes
+    }, [searchTerm, profiles.length, loading]); // Added dependencies for safety
 
     useEffect(() => {
         fetchProfiles();
     }, [fetchProfiles]); 
 
-    // Handler for search input changes: updates the IMMEDIATE state
+    // Handler for search input changes
     const handleSearchChange = (e) => {
         setLiveSearchTerm(e.target.value);
     };
     
-    // --- Render Logic ---
+    // --- Render Logic (No changes) ---
     if (loading && profiles.length === 0) {
         return <div className="profile-list-container loading-message">Loading business profiles...</div>;
     }
@@ -104,12 +108,11 @@ function BusinessProfileList() {
         <div className="profile-list-container">
             <h1 className="list-heading">Browse Local Businesses</h1>
             
-            {/* 🛑 INPUT USES the IMMEDIATE state (liveSearchTerm) 🛑 */}
             <div className="search-bar">
                 <input
                     type="text"
                     placeholder="Search by name, description, or address..."
-                    value={liveSearchTerm} // Binds to the immediate state
+                    value={liveSearchTerm} 
                     onChange={handleSearchChange}
                     className="search-input"
                 />

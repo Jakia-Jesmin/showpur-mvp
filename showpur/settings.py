@@ -2,19 +2,23 @@
 
 from pathlib import Path
 from datetime import timedelta # <-- Needed for JWT settings
+from dotenv import load_dotenv # 🛑 Import the loader
+import os                     # 🛑 Import os
+
+load_dotenv() # 🛑 Load environment variables from the .env file
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@1nj+!3#o+s*h*ceqp^*&!hd6*)$p7xyu76(obvs_&&823mal5'
+# 🛑 CRITICAL CHANGE: Use os.getenv() to read the SECRET_KEY from .env
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@1nj+!3#o+s*h*ceqp^*&!hd6*)$p7xyu76(obvs_&&823mal5') 
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 🛑 CRITICAL CHANGE: Read DEBUG from .env
+DEBUG = os.getenv('DEBUG', 'False') == 'True' 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # -------------------------------------------------------------------
@@ -81,10 +85,13 @@ WSGI_APPLICATION = 'showpur.wsgi.application'
 
 
 # Database
+DB_NAME = os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3') 
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # 2. Use the variable for the database file path
+        'NAME': DB_NAME, 
     }
 }
 
@@ -154,7 +161,7 @@ REST_FRAMEWORK = {
 }
 
 # JWT Settings (for "Remember Me" and token lifespan)
-SIMPLE_JWT = {
+SIMPLE_JWT = { 
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True, 
@@ -166,3 +173,4 @@ SIMPLE_JWT = {
 # Media files (for user-uploaded content)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+

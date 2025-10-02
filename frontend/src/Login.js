@@ -2,92 +2,88 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios'; // 🛑 Use vanilla Axios for unauthenticated login 🛑
+import { jwtDecode } from 'jwt-decode'; // 🛑 Use standard library for decoding 🛑
 import './Login.css';
 
-// Helper function to decode the JWT payload
-// Base64 decoding is safe because JWT is self-contained.
-const decodeJWT = (token) => {
-    try {
-        // The payload is the second part of the token (index 1)
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        return JSON.parse(jsonPayload);
-    } catch (e) {
-        console.error("Failed to decode JWT:", e);
-        return null;
-    }
-};
+// Create a standalone Axios instance for UN-AUTHENTICATED requests
+// to prevent the interceptor from trying to attach tokens to the login call.
+const publicApi = axios.create({
+    baseURL: 'http://localhost:8000/api/',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
 
 function Login({ setAuth }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false); // New loading state
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        setLoading(true);
 
         try {
-            // 1. Initial login to get tokens
-            // NOTE: Ensure your backend path is correct (either 'api/token/' or 'api/auth/token/')
-            const tokenResponse = await fetch('http://localhost:8000/api/auth/token/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
+            // 1. Initial login to get tokens using the publicApi (no interceptor)
+            // The path becomes 'auth/token/' because the base URL already includes 'api/'
+            const response = await publicApi.post('auth/token/', { username, password });
 
-            if (!tokenResponse.ok) {
-                setError('Invalid username or password.');
-                return;
-            }
-
-            const tokenData = await tokenResponse.json();
+            const tokenData = response.data;
             const accessToken = tokenData.access;
             const refreshToken = tokenData.refresh;
 
             // 🛑 CRITICAL STEP 🛑
-            // 2. Decode Access Token to get User ID and Role/Profile status
-            const payload = decodeJWT(accessToken);
+            // 2. Decode Access Token to get User ID and Profile status
+            const payload = jwtDecode(accessToken);
 
-            if (!payload) {
+            if (!payload || payload.user_id === undefined) {
                 setError('Login failed: Invalid token received.');
+                setLoading(false);
                 return;
             }
 
-            const userId = payload.user_id; // JWT standard field
-            const hasProfile = payload.has_profile; // Our custom claim from backend
-
+            // Extract claims (check your backend for the exact names: 'user_id' and 'has_profile')
+            const userId = payload.user_id; 
+            const hasProfile = payload.has_profile; 
+            
             // 3. Store tokens and user ID in local storage
             localStorage.setItem('access_token', accessToken);
             localStorage.setItem('refresh_token', refreshToken);
-            localStorage.setItem('user_id', userId); 
+            // Ensure userId is stored as a number/string that can be consistently compared (number is better)
+            localStorage.setItem('user_id', String(userId)); 
 
             // 4. Update the global authentication state
             setAuth({
                 isAuthenticated: true,
-                accessToken: accessToken,
-                userId: userId,
+                // Note: The app's interceptor will retrieve the token from local storage now
+                userId: userId, 
             });
             
             // 🛑 5. ROLE-BASED NAVIGATION 🛑
+            // Navigate based on the 'has_profile' custom claim
             if (hasProfile) {
-                // If the user (like AtiqulStore) has a profile, send them to the Showroom Dashboard
                 navigate('/dashboard/showroom');
             } else {
-                // Default route for a user with no associated profile
                 navigate('/home'); 
             }
 
         } catch (err) {
-            console.error("Login submission error:", err);
-            setError('An error occurred. Please try again later.');
+            console.error("Login submission error:", err.response || err);
+
+            // Handle common 401/400 errors from the backend
+            if (err.response && (err.response.status === 401 || err.response.status === 400)) {
+                // DRF Simple JWT often returns { "detail": "No active account found with the given credentials" }
+                setError('Invalid username or password.');
+            } else {
+                setError('A network error occurred. Please try again later.');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -114,7 +110,9 @@ function Login({ setAuth }) {
                         required
                     />
                 </div>
-                <button type="submit" className="login-button">Log In</button>
+                <button type="submit" className="login-button" disabled={loading}>
+                    {loading ? 'Logging in...' : 'Log In'}
+                </button>
                 <p className="login-link">
                     Don't have an account? <Link to="/register">Register here</Link>
                 </p>

@@ -1,85 +1,84 @@
 // frontend/src/BusinessProfileDetail.js
 
-import React, { useState, useEffect } from 'react';
-// 🛑 ADDED useNavigate for redirection after delete 🛑
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom'; 
+import api from './api/api'; // 🛑 Import the custom Axios client 🛑
 import './BusinessProfileDetail.css';
 
-// 🛑 ADDED currentUserId to props destructuring 🛑
+
 function BusinessProfileDetail({ currentUserId }) { 
     const { id } = useParams(); // Get the profile ID from the URL
-    const navigate = useNavigate(); // <-- ADDED HOOK
+    const navigate = useNavigate();
     
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // 🛑 OWNERSHIP CHECK IS NOW CORRECT 🛑
-    // Note: currentUserId should be an integer, ensure you parse it in App.js/Login.js
+    // 🛑 OWNERSHIP CHECK: Ensure currentUserId is an integer for strict comparison 🛑
     const isOwner = profile && profile.user === currentUserId; 
     
-    // Handle Delete (New function)
-    const handleDelete = async () => {
-        if (window.confirm("Are you sure you want to delete this profile?")) {
-            try {
-                // Retrieve token from local storage
-                const accessToken = localStorage.getItem('access_token'); 
-                
-                // Add check to ensure token exists before attempting delete
-                if (!accessToken) {
-                    console.error("No access token found. Cannot delete profile.");
-                    navigate('/login');
-                    return;
-                }
-
-                const response = await fetch(`http://localhost:8000/api/profiles/${id}/`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                });
-
-                if (response.status === 204) { // 204 No Content is standard for successful DELETE
-                    // You might want to call a function passed from App.js 
-                    // to update the profile list, but redirecting is sufficient for now.
-                    navigate('/'); 
-                } else if (response.status === 403) {
-                    alert("Permission denied. You can only delete your own profile.");
-                } else {
-                    console.error("Deletion failed with status:", response.status);
-                    alert("Deletion failed. Check the console for details.");
-                }
-            } catch (error) {
-                console.error("Error deleting profile:", error);
-                alert("Network error during deletion.");
-            }
-        }
-    };
-
-    // Fetch single profile data
-    const fetchProfile = async () => {
+    // --- 1. Fetch single profile data (Public READ access) ---
+    const fetchProfile = useCallback(async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const response = await fetch(`http://localhost:8000/api/profiles/${id}/`);
-            if (response.ok) {
-                const data = await response.json();
-                setProfile(data);
-            } else if (response.status === 404) {
-                setError('Business profile not found');
-            } else {
-                setError('Failed to fetch profile');
-            }
+            // Use Axios for fetching. Since this is public data, no special headers needed.
+            // Axios base URL (http://localhost:8000/api/) is already configured in api.js
+            const response = await api.get(`profiles/${id}/`); 
+            
+            setProfile(response.data);
+
         } catch (error) {
             console.error('Error fetching profile:', error);
-            setError('Failed to load profile');
+            const status = error.response?.status;
+            
+            if (status === 404) {
+                setError('Business profile not found.');
+            } else {
+                setError(`Failed to load profile. (Status: ${status || 'Network Error'})`);
+            }
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]); // id is the only dependency needed for fetching
 
     useEffect(() => {
         fetchProfile();
-    }, [id]); // id is the only dependency needed for fetching
+    }, [fetchProfile]);
 
+
+    // --- 2. Handle Delete (Authenticated DELETE access) ---
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to delete this profile? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            // 🛑 Use api.delete(). The interceptor handles the Authorization header and token refresh. 🛑
+            await api.delete(`profiles/${id}/`); 
+
+            // Deletion successful (Axios throws error on 4xx/5xx, so success implies 2xx, often 204)
+            navigate('/', { state: { message: 'Profile deleted successfully.' } });
+            
+        } catch (error) {
+            console.error("Error deleting profile:", error);
+            const status = error.response?.status;
+            
+            if (status === 401) {
+                // Interceptor should handle this (redirect to login if refresh fails), 
+                // but we can provide an explicit message just in case.
+                alert("Session expired or unauthorized. Please log in.");
+                navigate('/login');
+            } else if (status === 403) {
+                // Standard check for permission error
+                alert("Permission denied. You can only delete your own profile.");
+            } else {
+                alert(`Deletion failed. Status: ${status || 'Network Error'}.`);
+            }
+        }
+    };
+
+    // --- Render Logic (Unchanged) ---
     if (loading) {
         return (
             <div className="profile-detail-container">
@@ -123,11 +122,13 @@ function BusinessProfileDetail({ currentUserId }) {
 
             <div className="profile-content">
                 <div className="profile-info">
+                    {/* ... (About Section) ... */}
                     <div className="info-section">
                         <h2>About</h2>
                         <p className="description">{profile.description}</p>
                     </div>
 
+                    {/* ... (Contact Information Section) ... */}
                     <div className="info-section">
                         <h2>Contact Information</h2>
                         <div className="contact-details">

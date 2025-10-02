@@ -1,47 +1,53 @@
-# core/urls.py
+# C:\showpur-mvp\core\urls.py
 
-from django.urls import path
-from . import views
-from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView,)
-from .views import MyTokenObtainPairView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView # Only need TokenRefreshView here
 
-# 🛑 UPDATE IMPORTS: Include UserDetailView 🛑
-# We need to import the entire 'views' module to access UserDetailView and UserCreateView
-from . import views 
-from .views import BusinessProfileListCreateView, BusinessProfileDetailView 
-# Note: Since we are using 'views.UserCreateView', we can remove the direct import
-# of UserCreateView from the line above, but we'll import 'views' fully below.
-
-# Let's clean up the imports to be consistent and include the new view
 from .views import (
-    BusinessProfileListCreateView, 
-    BusinessProfileDetailView, 
-    UserCreateView, # You had this before
-    UserDetailView # <--- NEW VIEW IMPORTED HERE
+    UserCreateView, 
+    UserDetailView, 
+    MyTokenObtainPairView,
+    ShowroomInventoryListView,
+    RecordSaleView,
+    BusinessProfileViewSet 
 )
 
+# 1. Initialize the Router
+router = DefaultRouter()
+# Register the BusinessProfileViewSet with the base path 'profiles' 
+# This handles: /profiles/ (GET, POST) and /profiles/<pk>/ (GET, PUT, DELETE)
+router.register(r'profiles', BusinessProfileViewSet, basename='business-profile')
+
+
 urlpatterns = [
-    # Core business profile URLs
-    path('profiles/', BusinessProfileListCreateView.as_view(), name='profile-list-create'),
-    path('profiles/<int:pk>/', BusinessProfileDetailView.as_view(), name='profile-detail'),
+    # ----------------------------------------------------
+    # 1. BUSINESS PROFILE URLs (Handles CRUD via Router)
+    # ----------------------------------------------------
+    # All /profiles/ and /profiles/<pk>/ paths are now handled by the router
+    path('', include(router.urls)),
 
-    # Registration URL
-    path('register/', UserCreateView.as_view(), name='register'), # Consolidated this line
-
-    # Simple JWT Authentication URLs
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
-    # 🛑 NEW URL: Get current user details after login 🛑
+    # ----------------------------------------------------
+    # 2. AUTHENTICATION & USER URLs
+    # ----------------------------------------------------
+    
+    # Registration
+    path('register/', UserCreateView.as_view(), name='register'),
+    
+    # Custom JWT Token Endpoints (using your custom serializer view)
+    path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Get/Update current user details after login
     path('auth/user/', UserDetailView.as_view(), name='user-detail'),
 
-    # SALES TRACKING PATH 🛑 NEW 🛑
-    path('sales/record/', views.RecordSaleView.as_view(), name='record-sale'),
-
-    # SHOWROOM INVENTORY DASHBOARD 🛑 NEW 🛑
-    path('dashboard/showroom/inventory/', views.ShowroomInventoryListView.as_view(), name='showroom-inventory-list'),
+    # ----------------------------------------------------
+    # 3. SHOWROOM & SALES URLs
+    # ----------------------------------------------------
     
-    # Ensure your custom serializer is used here
-    path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'), 
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Sales Tracking
+    path('sales/record/', RecordSaleView.as_view(), name='record-sale'),
+    
+    # Showroom Inventory Dashboard
+    path('dashboard/showroom/inventory/', ShowroomInventoryListView.as_view(), name='showroom-inventory-list'),
 ]

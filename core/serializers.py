@@ -3,6 +3,7 @@
 from rest_framework import serializers
 from .models import InventoryAllocation, Product, BusinessProfile
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 # Updated Business Profile Serializer
 class BusinessProfileSerializer(serializers.ModelSerializer):
@@ -20,6 +21,7 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = BusinessProfile
         fields = '__all__'
+        read_only_fields = ('user', 'created_at',)
 
 # New serializer for user registration
 class UserSerializer(serializers.ModelSerializer):
@@ -62,3 +64,14 @@ class ShowroomInventorySerializer(serializers.ModelSerializer):
         # 👇 Method contents must be indented twice (8 spaces)
         return obj.sales_count * obj.product.retail_price
     
+    # --- Product Serializer (Focus) ---
+
+class ProductSerializer(serializers.ModelSerializer):
+    # Use read_only=True and required=False since the business ID 
+    # will be injected automatically by the ViewSet based on the logged-in user.
+    business = serializers.PrimaryKeyRelatedField(read_only=True) 
+
+    class Meta:
+        model = Product
+        fields = '__all__'
+        read_only_fields = ('business',)

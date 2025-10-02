@@ -14,7 +14,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         # Write permissions are only allowed to the owner of the profile.
         return obj.user == request.user
 
-# 🛑 CRITICAL FIX: Add the missing Showroom Manager permission class 🛑
+# 🛑 Showroom Manager permission class 🛑
 class IsShowroomManager(permissions.BasePermission):
     """
     Custom permission to only allow users who have an associated BusinessProfile 

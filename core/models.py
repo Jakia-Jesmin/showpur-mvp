@@ -1,12 +1,12 @@
 # core/models.py
-
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
+
 
 class BusinessProfile(models.Model):
     # Link a user to their profile.
     # on_delete=models.CASCADE means if a user is deleted, their profile is too.
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     
     business_name = models.CharField(max_length=255)
     description = models.TextField(blank=True)

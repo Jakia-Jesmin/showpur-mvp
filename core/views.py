@@ -1,14 +1,16 @@
-from rest_framework import generics, filters, status, viewsets
+from rest_framework import generics, filters, status, viewsets, permissions
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView # <-- ADD TokenRefreshView
+
 
 # Import all models
 from .models import BusinessProfile, InventoryAllocation 
 
 # Import all required serializers
-from .serializers import BusinessProfileSerializer, UserSerializer, ShowroomInventorySerializer 
+from .serializers import BusinessProfileSerializer, UserSerializer, ShowroomInventorySerializer, ProductSerializer 
 
 # Import all required permissions
 # NOTE: Ensure IsOwnerOrReadOnly and IsShowroomManager are defined in core/permissions.py
@@ -103,7 +105,30 @@ class ShowroomInventoryListView(generics.ListAPIView):
             receiving_business=showroom_profile
         ).select_related('product', 'receiving_business')
     
+# --- Product ViewSet (Focus) ---
 
+class ProductViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductSerializer
+    # Only authenticated users can access the products
+    permission_classes = [permissions.IsAuthenticated] 
+
+    def get_queryset(self):
+        """
+        Filters products to show ONLY those owned by the logged-in user's profile.
+        """
+        try:
+            # We filter by the BusinessProfile related to the current user
+            return Product.objects.filter(business=self.request.user.businessprofile)
+        except:
+            # If the user doesn't have a profile yet (expected for new users), return an empty queryset
+            return Product.objects.none()
+
+    def perform_create(self, serializer):
+        """
+        Injects the current user's BusinessProfile ID into the product before saving.
+        """
+        # The serializer saves the product, linking it to the logged-in user's profile.
+        serializer.save(business=self.request.user.businessprofile)
 class RecordSaleView(APIView):
     """
     Handles recording an offline sale by a showroom manager, deducting stock

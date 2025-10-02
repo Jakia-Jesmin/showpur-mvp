@@ -4,8 +4,7 @@ import axios from 'axios';
 // 🛑 CRITICAL CHECK: Ensure this path is correct relative to the utility file 🛑
 import { refreshAccessToken } from '../utils/auth'; 
 
-// 🛑 Minor change: Use 'localhost' as it often resolves better across different environments 🛑
-const baseURL = 'http://localhost:8000/api/'; 
+const baseURL = 'http://127.0.0.1:8000/api/'; 
 
 const api = axios.create({
     baseURL: baseURL,

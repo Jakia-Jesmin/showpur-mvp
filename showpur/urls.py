@@ -27,9 +27,8 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # Add this line to include your core app's URLs under the 'api/' path
-    path('api/', include('core.urls')), 
+        path('admin/', admin.site.urls),
+        path('api/', include('core.urls')), # All application logic is here
 ]
 
 from django.contrib import admin

@@ -1,28 +1,26 @@
 # showpur/settings.py
 
 from pathlib import Path
-from datetime import timedelta # <-- Needed for JWT settings
-from dotenv import load_dotenv # 🛑 Import the loader
-import os                     # 🛑 Import os
+from datetime import timedelta
+import os
+from dotenv import load_dotenv
 
-load_dotenv() # 🛑 Load environment variables from the .env file
+# Load environment variables from the .env file
+load_dotenv() 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-# 🛑 CRITICAL CHANGE: Use os.getenv() to read the SECRET_KEY from .env
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@1nj+!3#o+s*h*ceqp^*&!hd6*)$p7xyu76(obvs_&&823mal5') 
-
-# 🛑 CRITICAL CHANGE: Read DEBUG from .env
 DEBUG = os.getenv('DEBUG', 'False') == 'True' 
 
 ALLOWED_HOSTS = ["*"]
 
 
 # -------------------------------------------------------------------
-# 1. APPLICATION DEFINITION (INSTALLED_APPS) - CONSOLIDATED
+# 1. APPLICATION DEFINITION (INSTALLED_APPS)
 # -------------------------------------------------------------------
 
 INSTALLED_APPS = [
@@ -34,18 +32,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # 🛑 Your Custom App (CRITICAL for Admin Link) 🛑
-    'core',
-    
-    # Third-Party API Apps
-    'corsheaders',      
-    'rest_framework',   
-    'django_filters',   
+    # Third-Party API/Utility Apps
+    'corsheaders', 
+    'rest_framework',
+    'django_filters',
     'rest_framework_simplejwt', 
+    'djoser',
+    
+    # Your Custom App
+    'core',
 ]
 
 # -------------------------------------------------------------------
-# 2. MIDDLEWARE (ORDER IS CRITICAL) - CONSOLIDATED
+# 2. MIDDLEWARE (ORDER IS CRITICAL)
 # -------------------------------------------------------------------
 
 MIDDLEWARE = [
@@ -90,7 +89,6 @@ DB_NAME = os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        # 2. Use the variable for the database file path
         'NAME': DB_NAME, 
     }
 }
@@ -127,18 +125,16 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # -------------------------------------------------------------------
-# 3. CUSTOM SETTINGS (CORS, DRF, JWT, MEDIA) - CONSOLIDATED
+# 3. CUSTOM SETTINGS (CORS, DRF, JWT, DJOSER)
 # -------------------------------------------------------------------
 
 # CORS Settings
-# Using True for development simplicity. If you use CORS_ALLOWED_ORIGINS, 
-# you MUST set CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_ORIGINS = True 
 
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
-    'authorization', # CRITICAL: Allows the Bearer token to be passed
+    'authorization', # Critical for Bearer token
     'content-type',
     'dnt',
     'origin',
@@ -160,17 +156,43 @@ REST_FRAMEWORK = {
     ),
 }
 
-# JWT Settings (for "Remember Me" and token lifespan)
+# JWT Settings (Simple JWT)
 SIMPLE_JWT = { 
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    # REFINEMENT: Increased Access Token lifetime for easier debugging
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), 
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True, 
     'AUTH_HEADER_TYPES': ('Bearer',), 
-    # 🛑 CRITICAL: Use the custom token serializer 🛑
+    # CRITICAL: Use the custom token serializer to pass User ID during login
     'TOKEN_OBTAIN_PAIR_SERIALIZER': 'core.token_serializers.MyTokenObtainPairSerializer',
 }
+
+# DJOSER Settings (NEW/REFINED BLOCK)
+DJOSER = {
+    # Specify the token type (JWT) for the backend
+    'TOKEN_MODEL': None, 
+    
+    # Use standard Djoser endpoints with our custom serializers
+    'SERIALIZERS': {
+        'user_create': 'core.serializers.UserCreateSerializer', # Assumes custom serializer in core app
+        'user': 'core.serializers.UserSerializer',             # Assumes custom serializer in core app
+        'current_user': 'core.serializers.UserSerializer',
+        'user': 'core.serializers.CustomUserSerializer',
+    },
+    
+    # Settings for email links (if you implement email confirmation later)
+    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
+    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
+    'ACTIVATION_URL': '#/activate/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': False,
+    
+    # Required for Djoser to work with Simple JWT/DRF
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.IsAdminUser'],
+    }
+}
+
 
 # Media files (for user-uploaded content)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-

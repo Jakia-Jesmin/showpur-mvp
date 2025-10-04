@@ -1,53 +1,57 @@
-// frontend/src/App.js
-
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// All component imports are correct
-import UserProfile from './UserProfile'; 
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+
+// Component Imports
+import UserProfile from './UserProfile';
 import BusinessProfileList from './BusinessProfileList';
 import BusinessProfileDetail from './BusinessProfileDetail';
 import BusinessProfileForm from './BusinessProfileForm';
 import Register from './Register';
+import Header from './Header';
 import Login from './Login';
-import Header from './Header'; 
 import Footer from './Footer';
-import RecordSaleForm from './RecordSaleForm'; 
+import RecordSaleForm from './RecordSaleForm';
 import ShowroomDashboard from './ShowroomDashboard';
+import ProductList from './ProductList';
+import ProductForm from './ProductForm';
+import ProductDetail from './ProductDetail';
 import './App.css';
 
-// 🛑 OPTIMIZATION: Removed the unused 'refreshAccessToken' import. 
-// Components should rely on the global api.js interceptor. 
-// import { refreshAccessToken } from './utils/auth'; 
+// RequireAuth Component - Redirects unauthenticated users to login
+const RequireAuth = ({ isAuthenticated, children }) => {
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
 
 function App() {
-    // Consolidated Auth State
     const [auth, setAuth] = useState({
         isAuthenticated: false,
         accessToken: null,
-        userId: null, 
+        userId: null,
     });
 
-    // --- 1. Initial Load: Check for stored tokens ---
+    // Check for stored tokens on initial load
     useEffect(() => {
-        const storedToken = localStorage.getItem('access_token');
-        const storedUserId = localStorage.getItem('user_id'); 
-        if (storedToken && storedUserId) {
+        const storedAccess = localStorage.getItem('access_token');
+        const storedUserId = localStorage.getItem('user_id');
+
+        if (storedAccess && storedUserId) {
             setAuth({
                 isAuthenticated: true,
-                accessToken: storedToken,
+                accessToken: storedAccess,
                 userId: parseInt(storedUserId),
             });
         }
     }, []);
 
-    // --- 2. Logout Handler ---
+    // Logout Handler
     const handleLogout = () => {
-        // Clear all user data from storage
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user_id'); 
-        
-        // Reset auth state
+        localStorage.removeItem('user_id');
+
         setAuth({
             isAuthenticated: false,
             accessToken: null,
@@ -55,71 +59,101 @@ function App() {
         });
     };
 
-    // --- 3. Profile Action Stub (kept for form use, though simpler components could handle it) ---
-    const handleProfileAction = (/* data */) => {
-        console.log("Profile action completed. Redirecting to list.");
+    // Profile Action Handler
+    const handleProfileAction = () => {
+        console.log("Profile action completed.");
     };
 
     return (
         <Router>
-            <div className="App">
-                <Header 
-                    isAuthenticated={auth.isAuthenticated} 
-                    handleLogout={handleLogout} 
-                />
+           
+            {/* ✅ Header 1: This is the ONLY header you need. */}
+            <Header isAuthenticated={auth.isAuthenticated} handleLogout={handleLogout} /> 
+                <div className="App">
 
                 <main className="App-main">
                     <Routes>
-                        {/* 1. PUBLIC ROUTES (Home/List) - Correct */}
-                        <Route path="/" element={<BusinessProfileList />} /> 
-                        
-                        {/* 2. AUTHENTICATION ROUTES - Correct */}
+                        {/* PUBLIC ROUTES */}
+                        <Route path="/" element={<BusinessProfileList />} />
+                        <Route path="/profiles/:id" element={<BusinessProfileDetail currentUserId={auth.userId} />} />
+
+                        {/* AUTHENTICATION ROUTES */}
                         <Route path="/register" element={<Register />} />
                         <Route path="/login" element={<Login setAuth={setAuth} />} />
 
-                        {/* 3. CORE CRUD ROUTES - Correct */}
-                        <Route path="/profiles/:id" element={<BusinessProfileDetail currentUserId={auth.userId} />} />
-                        <Route 
-                            path="/create-profile" 
-                            element={<BusinessProfileForm 
-                                onCreate={handleProfileAction} 
-                                // accessToken prop is still required if the form needs to manually 
-                                // handle file uploads (which Axios interceptors can complicate).
-                                // However, if the form uses the 'api' client, this prop should be removed. 
-                                // Assuming 'api' client is used in BusinessProfileForm:
-                                // accessToken={auth.accessToken} 
-                            />} 
-                        />
-                        <Route 
-                            path="/profiles/edit/:id" 
-                            element={<BusinessProfileForm 
-                                onCreate={handleProfileAction} 
-                                // accessToken prop removed (see note above)
-                                isEditMode={true}
-                            />} 
-                        />
+                        {/* PROTECTED ROUTES - Dashboard & Profile */}
+                        <Route path="/dashboard" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ShowroomDashboard/>
+                            </RequireAuth>
+                        } />
+                        <Route path="/profile" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <UserProfile setAuth={setAuth}/>
+                            </RequireAuth>
+                        } />
 
-                        {/* 4. USER & DASHBOARD ROUTES */}
-                        <Route 
-                            path="/profile" 
-                            element={<UserProfile setAuth={setAuth} />} 
-                        />
+                        {/* BUSINESS PROFILE ROUTES */}
+                        <Route path="/create-profile" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <BusinessProfileForm 
+                                    onCreate={handleProfileAction} 
+                                />
+                            </RequireAuth>
+                        } />
+                        <Route path="/profiles/edit/:id" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <BusinessProfileForm 
+                                    onCreate={handleProfileAction} 
+                                    isEditMode={true} 
+                                />
+                            </RequireAuth>
+                        } />
+
+                        {/* PRODUCT MANAGEMENT ROUTES */}
+                        <Route path="/products" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ProductList />
+                            </RequireAuth>
+                        } />
+                        <Route path="/products/create" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ProductForm />
+                            </RequireAuth>
+                        } />
+                        <Route path="/products/:id" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ProductDetail/>
+                            </RequireAuth>
+                        } />
+                        <Route path="/products/:id/edit" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ProductForm isEditMode={true} />
+                            </RequireAuth>
+                        } />
                         
-                        {/* 🛑 CORRECTION: Removed the redundant /sales/record route 
-                           and the unnecessary refreshAccessToken prop 🛑 */}
-                        <Route 
-                            path="/sales/record" 
-                            element={<RecordSaleForm accessToken={auth.accessToken} />} 
-                        />
+                        {/* SALES/INVENTORY ROUTES */}
+                        <Route path="/sales/record/:inventoryId" element={ 
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <RecordSaleForm/>
+                            </RequireAuth>
+                        } />
+                        <Route path="/dashboard/showroom" element={
+                            <RequireAuth isAuthenticated={auth.isAuthenticated}>
+                                <ShowroomDashboard/>
+                            </RequireAuth>
+                        } />
 
-                        <Route 
-                            path="/dashboard/showroom" 
-                            element={<ShowroomDashboard accessToken={auth.accessToken} />} 
-                        />
+                        {/* Fallback route */}
+                        <Route path="*" element={
+                            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                <h1>404 - Page Not Found</h1>
+                                <Link to="/">Go back home</Link>
+                            </div>
+                        } />
                     </Routes>
                 </main>
-
-                <Footer /> 
+                <Footer />
             </div>
         </Router>
     );

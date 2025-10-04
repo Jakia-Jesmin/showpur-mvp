@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const REFRESH_TOKEN_URL = 'http://127.0.0.1:8000/api/auth/token/refresh/'; // Use 127.0.0.1 for consistency
+const REFRESH_TOKEN_URL = 'http://127.0.0.1:8000/api/auth/jwt/refresh/'; // Use 127.0.0.1 for consistency
 const REFRESH_TOKEN_KEY = 'refresh_token'; 
 const ACCESS_TOKEN_KEY = 'access_token'; 
 const USER_ID_KEY = 'user_id'; 

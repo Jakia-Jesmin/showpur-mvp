@@ -1,0 +1,231 @@
+/* ========================================================================= */
+/* CSS Variables (Theme Definition) */
+/* ========================================================================= */
+:root {
+    /* Colors */
+    --color-primary: #007bff;          /* Blue */
+    --color-success: #28a745;          /* Green */
+    --color-warning: #ffc107;          /* Yellow */
+    --color-danger: #dc3545;           /* Red */
+    --color-secondary: #6c757d;        /* Gray */
+    --color-text-dark: #333;
+    --color-text-medium: #666;
+    --color-border-light: #e1e5e9;
+    --color-background-light: #f8f9fa;
+    --color-white: #ffffff;
+
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Base Styles for Consistency */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-background-light);
+    color: var(--color-text-dark);
+}
+
+/* General Button/Link Styles (Applying to all .btn-* classes) */
+.btn-primary, .btn-cancel, .btn-submit, .btn-view, .btn-edit, .btn-delete {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+    display: inline-block; /* Ensure padding works correctly */
+}
+
+/* ========================================================================= */
+/* Product Detail Styles */
+/* ========================================================================= */
+.product-detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.product-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--color-border-light);
+}
+
+.header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.back-link {
+    color: var(--color-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: var(--color-primary);
+}
+
+.product-detail-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Responsive adjustment for detail view */
+@media (max-width: 768px) {
+    .product-detail-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-main-info {
+    background: var(--color-white);
+    padding: var(--spacing-lg);
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+}
+
+.product-title-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.product-title-section h1 {
+    margin: 0;
+    color: var(--color-text-dark);
+}
+
+.product-category-badge {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.product-description-section {
+    margin-top: var(--spacing-md);
+}
+
+.product-description-section h2 {
+    color: var(--color-text-dark);
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.2rem;
+}
+
+.product-description-section p {
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Pricing Card (Sidebar) */
+.product-pricing-card {
+    background: var(--color-white);
+    padding: var(--spacing-md);
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+    height: fit-content; /* Contains the card content cleanly */
+}
+
+.product-pricing-card h2 {
+    font-size: 1.3rem;
+    margin-top: 0;
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.pricing-item {
+    padding: 0.75rem;
+    background-color: var(--color-background-light);
+    border-radius: 5px;
+    border: 1px solid #eee;
+}
+
+.pricing-item.highlight {
+    background-color: #e7f9f0;
+}
+
+.pricing-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--color-text-medium);
+    margin-bottom: 0.25rem;
+}
+
+.pricing-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text-dark);
+}
+
+.pricing-value.large {
+    font-size: 1.4rem;
+    color: var(--color-success);
+}
+
+.pricing-item.profit .pricing-value {
+    color: #17a2b8;
+}
+
+.pricing-breakdown h3 {
+    font-size: 1rem;
+    color: var(--color-primary);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px dashed var(--color-border-light);
+    margin-top: var(--spacing-md);
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    font-size: 0.95rem;
+}
+
+.breakdown-item.total {
+    border-top: 2px solid #ddd;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.product-meta-info {
+    font-size: 0.9rem;
+    color: var(--color-text-medium);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border-light);
+}
+
+.product-meta-info p {
+    margin: 0.4rem 0;
+}

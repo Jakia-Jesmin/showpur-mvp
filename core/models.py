@@ -2,12 +2,11 @@
 from django.conf import settings
 from django.db import models
 
-
+# 1. Business Profile Model (Owned by the all users)
 class BusinessProfile(models.Model):
     # Link a user to their profile.
     # on_delete=models.CASCADE means if a user is deleted, their profile is too.
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    
     business_name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     contact_email = models.EmailField(unique=True)
@@ -22,33 +21,28 @@ class BusinessProfile(models.Model):
     def __str__(self):
         return self.business_name
     
-    # 1. Product Model (Owned by the Producer/MSME)
+# 2. Product Model (Owned by the Producer/MSME)
 class Product(models.Model):
     business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)
     description = models.TextField()
     
-    # Dual Pricing & Commission (CRITICAL for the model)
+# Dual Pricing & Commission (CRITICAL for the model)
     wholesale_price = models.DecimalField(max_digits=10, decimal_places=2) 
     retail_price = models.DecimalField(max_digits=10, decimal_places=2)      
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2)    
-    
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     
     def __str__(self):
         return self.name
 
-# 2. Inventory Allocation & Tracking (The "Stock")
+# 3. Inventory Allocation & Tracking (The "Stock")
 class InventoryAllocation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='allocations')
+    created_at = models.DateTimeField(auto_now_add=True)
     
     # The partner business (acting as the showroom) that receives the stock
-    receiving_business = models.ForeignKey(
-        BusinessProfile, 
-        on_delete=models.CASCADE, 
-        related_name='received_inventory',
-    ) 
-    
+    receiving_business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='received_inventory') 
     quantity_allocated = models.IntegerField(default=0)
     quantity_remaining = models.IntegerField(default=0) # Current stock
     sales_count = models.IntegerField(default=0)         # Total sales recorded from this stock

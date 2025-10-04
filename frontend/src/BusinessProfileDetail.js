@@ -9,25 +9,18 @@ import './BusinessProfileDetail.css';
 function BusinessProfileDetail({ currentUserId }) { 
     const { id } = useParams(); // Get the profile ID from the URL
     const navigate = useNavigate();
-    
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // 🛑 OWNERSHIP CHECK: Ensure currentUserId is an integer for strict comparison 🛑
-    const isOwner = profile && profile.user === currentUserId; 
-    
-    // --- 1. Fetch single profile data (Public READ access) ---
+    // --- 1. Fetch single profile data ---
     const fetchProfile = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             // Use Axios for fetching. Since this is public data, no special headers needed.
-            // Axios base URL (http://localhost:8000/api/) is already configured in api.js
             const response = await api.get(`profiles/${id}/`); 
-            
             setProfile(response.data);
-
         } catch (error) {
             console.error('Error fetching profile:', error);
             const status = error.response?.status;
@@ -40,11 +33,9 @@ function BusinessProfileDetail({ currentUserId }) {
         } finally {
             setLoading(false);
         }
-    }, [id]); // id is the only dependency needed for fetching
+    }, [id]);
 
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
+    useEffect(() => {fetchProfile();}, [fetchProfile]);
 
 
     // --- 2. Handle Delete (Authenticated DELETE access) ---
@@ -54,10 +45,7 @@ function BusinessProfileDetail({ currentUserId }) {
         }
 
         try {
-            // 🛑 Use api.delete(). The interceptor handles the Authorization header and token refresh. 🛑
             await api.delete(`profiles/${id}/`); 
-
-            // Deletion successful (Axios throws error on 4xx/5xx, so success implies 2xx, often 204)
             navigate('/', { state: { message: 'Profile deleted successfully.' } });
             
         } catch (error) {
@@ -65,12 +53,9 @@ function BusinessProfileDetail({ currentUserId }) {
             const status = error.response?.status;
             
             if (status === 401) {
-                // Interceptor should handle this (redirect to login if refresh fails), 
-                // but we can provide an explicit message just in case.
                 alert("Session expired or unauthorized. Please log in.");
                 navigate('/login');
             } else if (status === 403) {
-                // Standard check for permission error
                 alert("Permission denied. You can only delete your own profile.");
             } else {
                 alert(`Deletion failed. Status: ${status || 'Network Error'}.`);
@@ -78,7 +63,13 @@ function BusinessProfileDetail({ currentUserId }) {
         }
     };
 
-    // --- Render Logic (Unchanged) ---
+    // --- Core Logic: Determine User Role and Ownership ---
+    // Note: You must ensure 'currentUserId' is an integer, matching 'profile.user'.
+    const isOwner = profile && profile.user === currentUserId; 
+    const isProducer = profile && profile.business_type === 'Producer';
+    const isShowroom = profile && profile.business_type === 'Showroom';
+    
+    // --- Render Logic ---
     if (loading) {
         return (
             <div className="profile-detail-container">
@@ -105,7 +96,6 @@ function BusinessProfileDetail({ currentUserId }) {
 
     return (
         <div className="profile-detail-container">
-            {/* Added the cover photo and logo sections */}
             {profile.cover_photo && (
                 <div className="cover-photo" style={{ backgroundImage: `url(${profile.cover_photo})` }}></div>
             )}
@@ -119,6 +109,33 @@ function BusinessProfileDetail({ currentUserId }) {
                 <Link to="/" className="back-link">← Back to All Profiles</Link>
                 <h1>{profile.business_name}</h1>
             </div>
+
+            {/* ====================================================== */}
+            {/* 🛑 IMPLEMENTATION: PRODUCT & SHOWROOM DASHBOARD LINKS 🛑 */}
+            {/* ====================================================== */}
+            {(isOwner && isProducer) && (
+                <div className="dashboard-link-section">
+                    <button 
+                        onClick={() => navigate('/products')} 
+                        className="button primary-dashboard-button"
+                    >
+                        🏭 Go to Product Management
+                    </button>
+                </div>
+            )}
+
+            {(isOwner && isShowroom) && (
+                <div className="dashboard-link-section">
+                    <button 
+                        onClick={() => navigate('/dashboard/showroom')} 
+                        className="button primary-dashboard-button"
+                    >
+                        🏬 View Showroom Dashboard
+                    </button>
+                </div>
+            )}
+            {/* ====================================================== */}
+
 
             <div className="profile-content">
                 <div className="profile-info">
@@ -154,7 +171,7 @@ function BusinessProfileDetail({ currentUserId }) {
                                     <span>{profile.address}</span>
                                 </div>
                             )}
-
+                            
                             {profile.website && (
                                 <div className="contact-item">
                                     <strong>Website:</strong>
@@ -186,7 +203,7 @@ function BusinessProfileDetail({ currentUserId }) {
                     </div>
                 </div>
                 
-                {/* 🛑 EDIT/DELETE BUTTONS ONLY SHOWN TO OWNER 🛑 */}
+                {/* EDIT/DELETE BUTTONS ONLY SHOWN TO OWNER (KEPT FOR ACCOUNT ACTIONS) */}
                 {isOwner && (
                     <div className="profile-actions-owner"> 
                         <Link to={`/profiles/edit/${id}`} className="button edit-button">Edit Profile</Link>

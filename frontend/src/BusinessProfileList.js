@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './BusinessProfileList.css';
-import api from './api/api'; // Correctly importing the custom Axios client
+import api from './api/api';
 
-// Custom hook to handle debouncing logic (No changes needed here)
 const useDebounce = (value, delay) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -20,47 +19,31 @@ const useDebounce = (value, delay) => {
     return debouncedValue;
 };
 
-
 function BusinessProfileList() {
     const [profiles, setProfiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const [liveSearchTerm, setLiveSearchTerm] = useState('');
+    
     const searchTerm = useDebounce(liveSearchTerm, 500);
 
-    // --- Data Fetching Logic (Now uses the authenticated 'api' client) ---
-    const fetchProfiles = useCallback(async () => {
-        // Optimization: skip fetch if the debounced term is empty and we already have data
-        if (!searchTerm && profiles.length > 0 && !loading) return; 
-
+    const fetchProfiles = async () => {
         setLoading(true); 
         setError(null);
         
-        // Build the query string for the GET request
         const query = searchTerm 
             ? `?search=${encodeURIComponent(searchTerm)}` 
             : '';
 
         try {
-            // 🛑 CRITICAL FIX: Use api.get() instead of fetch() 🛑
-            // Axios handles the URL construction (base URL + 'profiles/' + query)
-            // and automatically includes the JWT token via the interceptor.
             const response = await api.get(`profiles/${query}`); 
-
-            // Axios automatically parses JSON, so data is at response.data
             setProfiles(response.data);
-            
         } catch (err) {
-            // Axios throws an error for 4xx/5xx status codes, which is where 
-            // the 401 Unauthorized error will be caught.
             console.error("API Error fetching profiles:", err);
             
             const status = err.response?.status;
 
             if (status === 401) {
-                // If the interceptor failed to refresh or redirect, display a prompt
-                // The interceptor should ideally handle the full logout/redirect.
                 setError("Failed to load profiles. Please ensure you are logged in.");
             } else {
                 setError(`Failed to load profiles (Status: ${status || 'Network Error'}).`);
@@ -68,18 +51,16 @@ function BusinessProfileList() {
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, profiles.length, loading]); // Added dependencies for safety
+    };
 
     useEffect(() => {
         fetchProfiles();
-    }, [fetchProfiles]); 
+    }, [searchTerm]);
 
-    // Handler for search input changes
     const handleSearchChange = (e) => {
         setLiveSearchTerm(e.target.value);
     };
     
-    // --- Render Logic (No changes) ---
     if (loading && profiles.length === 0) {
         return <div className="profile-list-container loading-message">Loading business profiles...</div>;
     }

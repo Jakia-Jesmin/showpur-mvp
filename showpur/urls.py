@@ -6,6 +6,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse # Keep if you want the API root view
 
+
+
 def api_root(request):
     return JsonResponse({
         'message': 'Showpur API',
@@ -26,12 +28,12 @@ urlpatterns = [
     # 🎯 FIX: INCLUDE DJOSER URLS HERE 🎯
     # This inclusion provides the /api/auth/user/ endpoint needed by the frontend
     path('api/auth/', include('djoser.urls')), 
+    path('api/auth/', include('djoser.urls.authtoken')),
     path('api/auth/', include('djoser.urls.jwt')),
 
     # All application-specific logic (profiles, products, etc.)
     path('api/', include('core.urls')),
 ] 
-
-# Static files for media/uploads (keep this at the end)
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

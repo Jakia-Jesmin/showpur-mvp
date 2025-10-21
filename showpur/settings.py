@@ -8,12 +8,15 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file
 load_dotenv() 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# This defines BASE_DIR
+BASE_DIR = Path(__file__).resolve().parent.parent 
 
+# Media files (for user-uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@1nj+!3#o+s*h*ceqp^*&!hd6*)$p7xyu76(obvs_&&823mal5') 
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@1nj+!3#o+s*h*ceqp^*&!hd6*)$p7xyu76(obvs_&&823mal5')  
 DEBUG = os.getenv('DEBUG', 'False') == 'True' 
 
 ALLOWED_HOSTS = ["*"]
@@ -50,7 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     # CORS Middleware MUST be first
     'corsheaders.middleware.CorsMiddleware', 
-    
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -119,10 +122,22 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
+# 1. Base URL for static assets (browser endpoint)
 STATIC_URL = 'static/'
+
+# It should point to C:\showpur-mvp\staticfiles
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# This points to C:\showpur-mvp\static
+STATICFILES_DIRS = [
+    BASE_DIR / 'static'
+]
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Corrected Whitenoise Storage Backend
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # -------------------------------------------------------------------
 # 3. CUSTOM SETTINGS (CORS, DRF, JWT, DJOSER)
@@ -154,6 +169,12 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
+
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ),
 }
 
 # JWT Settings (Simple JWT)
@@ -175,9 +196,8 @@ DJOSER = {
     # Use standard Djoser endpoints with our custom serializers
     'SERIALIZERS': {
         'user_create': 'core.serializers.UserCreateSerializer', # Assumes custom serializer in core app
-        'user': 'core.serializers.UserSerializer',             # Assumes custom serializer in core app
-        'current_user': 'core.serializers.UserSerializer',
-        'user': 'core.serializers.CustomUserSerializer',
+        'user': 'core.serializers.CustomUserSerializer',             # Assumes custom serializer in core app
+         'current_user': 'core.serializers.CustomUserSerializer',
     },
     
     # Settings for email links (if you implement email confirmation later)
@@ -192,7 +212,9 @@ DJOSER = {
     }
 }
 
+DEBUG = True
 
-# Media files (for user-uploaded content)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+
+
+

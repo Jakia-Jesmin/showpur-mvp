@@ -1,24 +1,27 @@
-// frontend/src/BusinessProfileDetail.js
+// frontend/src/BusinessProfileDetail.js (FINAL VERSION)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom'; 
-import api from './api/api'; // 🛑 Import the custom Axios client 🛑
+import api from './api/api'; 
 import './BusinessProfileDetail.css';
 
 
 function BusinessProfileDetail({ currentUserId }) { 
-    const { id } = useParams(); // Get the profile ID from the URL
+    const { id } = useParams(); 
     const navigate = useNavigate();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Ensure IDs are comparable integers
+    const currentUserIdInt = currentUserId ? parseInt(currentUserId) : null;
+
 
     // --- 1. Fetch single profile data ---
     const fetchProfile = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            // Use Axios for fetching. Since this is public data, no special headers needed.
             const response = await api.get(`profiles/${id}/`); 
             setProfile(response.data);
         } catch (error) {
@@ -64,10 +67,13 @@ function BusinessProfileDetail({ currentUserId }) {
     };
 
     // --- Core Logic: Determine User Role and Ownership ---
-    // Note: You must ensure 'currentUserId' is an integer, matching 'profile.user'.
-    const isOwner = profile && profile.user === currentUserId; 
+    // ✅ FIX: Use the parseInt() conversion on both sides to prevent string/number mismatch
+    const profileOwnerId = profile?.user ? parseInt(profile.user) : null;
+    const isOwner = profile && profileOwnerId === currentUserIdInt;
+    
     const isProducer = profile && profile.business_type === 'Producer';
     const isShowroom = profile && profile.business_type === 'Showroom';
+    
     
     // --- Render Logic ---
     if (loading) {
@@ -111,7 +117,7 @@ function BusinessProfileDetail({ currentUserId }) {
             </div>
 
             {/* ====================================================== */}
-            {/* 🛑 IMPLEMENTATION: PRODUCT & SHOWROOM DASHBOARD LINKS 🛑 */}
+            {/* OWNER DASHBOARD LINKS */}
             {/* ====================================================== */}
             {(isOwner && isProducer) && (
                 <div className="dashboard-link-section">
@@ -139,13 +145,11 @@ function BusinessProfileDetail({ currentUserId }) {
 
             <div className="profile-content">
                 <div className="profile-info">
-                    {/* ... (About Section) ... */}
                     <div className="info-section">
                         <h2>About</h2>
                         <p className="description">{profile.description}</p>
                     </div>
 
-                    {/* ... (Contact Information Section) ... */}
                     <div className="info-section">
                         <h2>Contact Information</h2>
                         <div className="contact-details">
@@ -203,7 +207,7 @@ function BusinessProfileDetail({ currentUserId }) {
                     </div>
                 </div>
                 
-                {/* EDIT/DELETE BUTTONS ONLY SHOWN TO OWNER (KEPT FOR ACCOUNT ACTIONS) */}
+                {/* ✅ EDIT/DELETE BUTTONS: SHOWN ONLY TO OWNER */}
                 {isOwner && (
                     <div className="profile-actions-owner"> 
                         <Link to={`/profiles/edit/${id}`} className="button edit-button">Edit Profile</Link>

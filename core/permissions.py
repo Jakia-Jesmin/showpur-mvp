@@ -2,7 +2,7 @@
 
 from rest_framework import permissions
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
+class IsUserOrReadOnly(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object to edit or delete it.
     """
@@ -11,7 +11,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Write permissions are only allowed to the owner of the profile.
+        # Write permissions are only allowed to the user of the profile.
         return obj.user == request.user
 
 # 🛑 Showroom Manager permission class 🛑

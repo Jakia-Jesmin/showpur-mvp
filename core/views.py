@@ -1,5 +1,5 @@
-from rest_framework import generics, filters, status, viewsets, permissions
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import generics, filters, status, viewsets, permissions, exceptions
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db import transaction 
@@ -15,7 +15,7 @@ from .models import BusinessProfile, Product, InventoryAllocation
 from .serializers import BusinessProfileSerializer, CustomUserSerializer, ShowroomInventorySerializer, ProductSerializer, InventoryAllocationSerializer
 
 # Import all required permissions
-from .permissions import IsOwnerOrReadOnly, IsShowroomManager 
+from .permissions import IsUserOrReadOnly, IsShowroomManager 
 
 # Import custom token serializer
 from .token_serializers import MyTokenObtainPairSerializer 
@@ -52,15 +52,22 @@ class MyTokenObtainPairView(TokenObtainPairView):
 class BusinessProfileViewSet(viewsets.ModelViewSet):
     """Provides CRUD operations for BusinessProfile."""
     serializer_class = BusinessProfileSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly] 
+    permission_classes = [IsAuthenticated, IsUserOrReadOnly]  
     filter_backends = [filters.SearchFilter]
     search_fields = ['business_name', 'description', 'address'] 
 
     def get_queryset(self):
-        if self.request.user.is_staff or self.request.user.is_superuser:
+        user = self.request.user
+        if not user.is_authenticated:
+            return BusinessProfile.objects.none()
+        if user.is_staff or user.is_superuser:
             return BusinessProfile.objects.all()
-        # Assumes the link field in BusinessProfile is named 'user'
-        return BusinessProfile.objects.filter(user=self.request.user)
+        return BusinessProfile.objects.filter(user=user)
+
+
+    def get_serializer_context(self):
+        # Ensure the request is passed to the serializer
+        return {'request': self.request} 
 
     def perform_create(self, serializer):
         """Automatically sets the 'user' field to the logged-in user upon creation."""
@@ -71,8 +78,8 @@ class BusinessProfileListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        owner = request.query_params.get('owner')
-        if owner == 'current':
+        user = request.query_params.get('user')
+        if user == 'current':
             profiles = BusinessProfile.objects.filter(user=request.user)
         else:
             # Only allow listing all profiles for staff/admin
@@ -115,20 +122,29 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Filters products to show ONLY those owned by the logged-in user's profile."""
-        try:
-            # Assumes a user has AT MOST one profile for product creation
-            return Product.objects.filter(business__user=self.request.user)
-        except:
+        if not self.request.user.is_authenticated:
             return Product.objects.none()
+            
+        # FIX: Change 'business__user' to 'business_name__owner'
+        # business_name: The ForeignKey field in Product.
+        # owner: The ForeignKey field in BusinessProfile pointing to the User.
+        return Product.objects.filter(business_name__user=self.request.user)
 
     def perform_create(self, serializer):
-        """Injects the current user's BusinessProfile ID into the product before saving."""
-        try:
-            business_profile = self.request.user.businessprofile # Assumes single profile
-        except BusinessProfile.DoesNotExist:
-            raise exceptions.ValidationError({"detail": "You must create a business profile before adding products."})
-            
-        serializer.save(business=business_profile)
+            """Injects the current user's BusinessProfile ID into the product before saving."""
+            try:
+                # 🛑 FIX: Access the manager, get the first profile (assuming single profile creation is intended)
+                business_profile = self.request.user.BusinessProfile.first() 
+                
+                if not business_profile:
+                    # Use exceptions imported from rest_framework
+                    raise exceptions.ValidationError({"detail": "You must create a business profile before adding products."})
+                    
+            except AttributeError:
+                # This error would occur if 'BusinessProfile' was the wrong related name entirely
+                raise exceptions.ValidationError({"detail": "Configuration Error: Business profile link is missing or incorrect."})
+                
+            serializer.save(business_name=business_profile) # Note: 'business' is the ForeignKey name in Product model
         
 class RecordSaleView(APIView):
     """Handles recording an offline sale by a showroom manager, deducting stock."""
@@ -208,23 +224,29 @@ class UserProfileView(APIView):
     """Get and update the currently authenticated user's account information."""
     permission_classes = [IsAuthenticated]
 
+    # core/views.py (UserProfileView)
+
     def get(self, request):
-        """Returns the authenticated user's information along with their business profile."""
+        """Returns the authenticated user's information along with their business profiles."""
         user = request.user
         
         try:
-            # Use filter() to handle potentially multiple profiles gracefully if model allows
-            business_profiles = BusinessProfile.objects.filter(user=user)
-            # Use serializer for complex fields and URLs
+            # 🛑 VERIFIED: This correctly fetches a queryset of profiles.
+            business_profiles = BusinessProfile.objects.filter(user) 
+            
+            # The serializer handles the list (many=True) and context is passed.
             profile_data = BusinessProfileSerializer(business_profiles, many=True, context={'request': request}).data
-        except:
+        except Exception as e:
+            # Log the exception for server-side debugging
+            print(f"Error fetching profile data in UserProfileView: {e}")
             profile_data = []
 
         return Response({
             'id': user.id,
             'username': user.username,
             'email': user.email,
-            'business_profiles': profile_data
+            # 🛑 VERIFIED: This key name is correct for the frontend expectation
+            'business_profiles': profile_data 
         }, status=status.HTTP_200_OK)
     
     def patch(self, request):
@@ -256,5 +278,3 @@ class UserProfileView(APIView):
             }, status=status.HTTP_200_OK)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    

@@ -15,10 +15,10 @@ function Footer() {
                 </p>
                 <div className="social-links">
                     {/* These links currently link to dummy URLs (#). Update them with your actual social media URLs. */}
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="social-link">
+                    <a href="https://web.facebook.com/showpur" target="_blank" rel="noopener noreferrer" className="social-link">
                         Facebook
                     </a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="social-link">
+                    <a href="https://www.linkedin.com/company/showpur/" target="_blank" rel="noopener noreferrer" className="social-link">
                         LinkedIn
                     </a>
                 </div>

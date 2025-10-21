@@ -1,11 +1,8 @@
-// frontend/src/BusinessProfileForm.js
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback for future function stabilization
 import { useNavigate, useParams } from 'react-router-dom';
-import api from './api/api'; // 🛑 Import the custom Axios client 🛑
+import api from './api/api'; 
 import './BusinessProfileForm.css';
 
-// Removed 'accessToken' prop as the 'api' client handles it internally
 function BusinessProfileForm({ onCreate, isEditMode }) { 
     const { id } = useParams();
     const navigate = useNavigate();
@@ -18,25 +15,27 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
         address: '',
         website: '',
         facebook_page: '',
-        // File fields start as null to differentiate from empty strings
-        logo: null,
+        // Null is correct for files that haven't been selected yet
+        logo: null, 
         cover_photo: null
     });
     const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(true); // Start loading in edit mode
+    const [loading, setLoading] = useState(true); 
     
-    // Add a separate state to store the initial profile data (for visual hints if needed)
+    // Stores initial data (especially image URLs) for preview and hints
     const [initialProfile, setInitialProfile] = useState(null); 
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
         setFormData(prevData => ({
             ...prevData,
+            // If files exist (i.e., it's a file input), store the File object (files[0]).
+            // Otherwise, store the string value.
             [name]: files ? files[0] : value
         }));
     };
     
-// --- 1. Load Data for Editing (useEffect) ---
+    // --- 1. Load Data for Editing ---
     const fetchProfileData = useCallback(async () => {
         if (!isEditMode || !id) {
             setLoading(false);
@@ -45,14 +44,11 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
         
         setLoading(true);
         try {
-            // Use api.get for fetching profile data
             const response = await api.get(`profiles/${id}/`);
             const data = response.data;
             
-            // Store the initial profile data for context/hints
             setInitialProfile(data);
 
-            // Set the form data from the fetched data
             setFormData({
                 business_name: data.business_name || '',
                 description: data.description || '',
@@ -61,14 +57,13 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
                 address: data.address || '',
                 website: data.website || '',
                 facebook_page: data.facebook_page || '',
-                // File inputs must be reset to null when loading to avoid console warnings
-                logo: null, 
-                cover_photo: null
+                // Initialize state with the fetched image URLs (strings) or null
+                logo: data.logo_url || null, 
+                cover_photo: data.cover_photo_url || null 
             });
             
         } catch (error) {
             console.error("Failed to fetch profile for editing:", error);
-            // If fetching fails, redirect away
             navigate('/'); 
         } finally {
             setLoading(false);
@@ -77,63 +72,66 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
 
     useEffect(() => {
         fetchProfileData();
-    }, [fetchProfileData]);
+    }, [fetchProfileData]); // Using fetchProfileData as a dependency (stabilized by useCallback)
 
-
-// --- 2. Handle Submission (POST/PATCH with Axios and FormData) ---
+    // --- 2. Handle Submission (POST/PATCH with FormData) ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setErrors({});
 
-        // 🛑 Convert the React state to FormData for submission 🛑
-        const form = new FormData();
+        const submissionFormData = new FormData(); 
         
         for (const key in formData) {
             const value = formData[key];
             
-            // Crucial: Only append values that are not null. 
-            // This prevents sending `null` for optional text fields or `null` for files the user didn't select.
-            if (value !== null && value !== undefined) {
-                // If it's a string and empty, and we are PATCHing, skip it entirely 
-                // to prevent Django from treating it as a change to an empty string.
-                // NOTE: If the user explicitly wants to clear a field, they'll send an empty string, 
-                // which might be fine depending on the backend model requirements.
-                
-                // For robustness, we skip file fields that are null/undefined (user didn't choose a new file)
-                if (key === 'logo' || key === 'cover_photo') {
-                    if (value instanceof File) {
-                        form.append(key, value);
-                    }
-                } else if (typeof value === 'string' && value.trim() !== '') {
-                    form.append(key, value);
-                } else if (typeof value === 'string' && value.trim() === '' && !isEditMode) {
-                    // In POST (create) mode, send empty strings if necessary for required fields
-                    form.append(key, value);
-                } else if (typeof value !== 'string') {
-                     // For non-string fields (like numbers, which you don't have here)
-                    form.append(key, value);
+            // Skip undefined, null, and empty string values for PATCH/POST requests
+            if (value === null || value === undefined) {
+                continue;
+            }
+
+            const isImageField = key === 'logo' || key === 'cover_photo';
+
+            // A. Handle NEW FILE UPLOADS (The File object)
+            if (value instanceof File) {
+                submissionFormData.append(key, value);
+            } 
+            
+            // B. Handle Text Fields (and SKIP existing image URLs in EDIT mode)
+            else if (typeof value === 'string') {
+                const trimmedValue = value.trim();
+
+                // CRITICAL: If in edit mode, and this is an image field, and the value is a string (URL), SKIP it.
+                // We only send a field if it's a NEW file (File object) or a text value.
+                if (isEditMode && isImageField) {
+                    continue; 
                 }
+                
+                // Append all non-file, non-URL string values, including empty strings for optional fields in POST mode
+                submissionFormData.append(key, trimmedValue);
+            } 
+            
+            // C. Handle other types (like numbers, though you don't have them here)
+            else {
+                 submissionFormData.append(key, value);
             }
         }
         
-        // Determine method and URL
+        // 3. Determine method and URL
         const method = isEditMode ? 'patch' : 'post';
-        const url = isEditMode ? `profiles/${id}/` : 'profiles/';
+        const url = isEditMode ? `profiles/${id}/` : 'profiles/'; 
         
         try {
-            // 🛑 Use the api client: it handles the Authorization header and token refresh automatically. 🛑
             const response = await api({
-                method: method, // 'post' or 'patch'
+                method: method, 
                 url: url,
-                data: form, // Send the FormData object
-                // Axios automatically sets 'Content-Type': 'multipart/form-data'
+                data: submissionFormData,
+                // Axios automatically sets 'Content-Type': 'multipart/form-data' for FormData
             });
 
             const resultProfile = response.data;
-            onCreate(resultProfile); // Notify App.js 
             
-            // Navigate to the detail view of the new/updated profile
+            if (onCreate) onCreate(resultProfile);
             navigate(`/profiles/${resultProfile.id}`); 
             
         } catch (error) {
@@ -142,10 +140,8 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
             const errorData = error.response?.data;
 
             if (status === 400 && errorData) {
-                // Display validation errors
                 setErrors(errorData); 
             } else if (status === 401 || status === 403) {
-                 // Interceptor should handle 401/403 (e.g., redirect to login)
                 navigate('/login', { state: { message: "Session expired or unauthorized. Please log in." } });
             } else {
                 setErrors({ general: 'Failed to save profile. Please check your network connection.' });
@@ -155,7 +151,6 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
         }
     };
 
-
     if (isEditMode && loading) {
         return <div className="profile-form-container"><p>Loading profile for editing...</p></div>;
     }
@@ -164,47 +159,30 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
     return (
         <div className="profile-form-container">
             <h1 className="form-heading">{isEditMode ? 'Edit Business Profile' : 'Create Your Business Profile'}</h1>
-            <form className="profile-form" onSubmit={handleSubmit}>
+            {/* The encType is technically redundant because of FormData/Axios, but harmless for clarity */}
+            <form className="profile-form" onSubmit={handleSubmit}> 
                 {errors.general && <p className="form-error">{errors.general}</p>}
                 
-                {/* --- Business Name --- */}
+                {/* --- Text fields (Business Name, Description, etc.) --- */}
+                
                 <div className="form-group">
                     <label>Business Name</label>
-                    <input
-                        type="text"
-                        name="business_name"
-                        value={formData.business_name}
-                        onChange={handleChange}
-                        required
-                    />
+                    <input type="text" name="business_name" value={formData.business_name} onChange={handleChange} required />
                     {errors.business_name && <p className="form-error">{errors.business_name}</p>}
                 </div>
                 
-                {/* --- Description --- */}
+                {/* ... other text/url inputs ... */}
                 <div className="form-group">
                     <label>Description</label>
-                    <textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                    />
+                    <textarea name="description" value={formData.description} onChange={handleChange} />
                     {errors.description && <p className="form-error">{errors.description}</p>}
                 </div>
                 
-                {/* --- Contact Email --- */}
                 <div className="form-group">
                     <label>Contact Email</label>
-                    <input
-                        type="email"
-                        name="contact_email"
-                        value={formData.contact_email}
-                        onChange={handleChange}
-                        required
-                    />
+                    <input type="email" name="contact_email" value={formData.contact_email} onChange={handleChange} required />
                     {errors.contact_email && <p className="form-error">{errors.contact_email}</p>}
                 </div>
-
-                {/* ... (Other Text Fields: Phone, Address, Website, Facebook) ... */}
 
                 <div className="form-group">
                     <label>Phone Number</label>
@@ -227,31 +205,46 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
                     {errors.facebook_page && <p className="form-error">{errors.facebook_page}</p>}
                 </div>
 
-                
-                {/* --- Logo File --- */}
+
+                {/* --- Logo File with Preview --- */}
                 <div className="form-group file-upload-group">
                     <label>Business Logo</label>
-                    <input
-                        type="file"
-                        name="logo"
-                        onChange={handleChange}
-                        // accept="image/*" // Optional: restrict file types
-                    />
+                    {/* Key change: When clicking 'clear,' the value must be reset to allow re-upload */}
+                    <input type="file" name="logo" onChange={handleChange} accept="image/*" />
                     {errors.logo && <p className="form-error">{errors.logo}</p>}
-                    {isEditMode && initialProfile?.logo && <p className="file-hint">Current file is uploaded. Leave blank to keep existing logo.</p>}
+                    
+                    {/* Preview Logic */}
+                    {(formData.logo || initialProfile?.logo_url) && (
+                        <div className="image-preview-container">
+                            <img
+                                // If it's a File object (new selection), create a temporary URL. If not, use the fetched URL (initialProfile)
+                                src={formData.logo instanceof File ? URL.createObjectURL(formData.logo) : initialProfile?.logo_url}
+                                alt="Logo Preview" // Corrected redundancy in alt tag
+                                className="preview-image"
+                                style={{ maxWidth: '150px', maxHeight: '150px' }}
+                            />
+                            {isEditMode && initialProfile?.logo_url && !(formData.logo instanceof File) && <p className="file-hint">Current Logo</p>}
+                        </div>
+                    )}
                 </div>
 
-                {/* --- Cover Photo File --- */}
+                {/* --- Cover Photo File with Preview --- */}
                 <div className="form-group file-upload-group">
                     <label>Cover Photo</label>
-                    <input
-                        type="file"
-                        name="cover_photo"
-                        onChange={handleChange}
-                        // accept="image/*" // Optional: restrict file types
-                    />
+                    <input type="file" name="cover_photo" onChange={handleChange} accept="image/*" />
                     {errors.cover_photo && <p className="form-error">{errors.cover_photo}</p>}
-                    {isEditMode && initialProfile?.cover_photo && <p className="file-hint">Current file is uploaded. Leave blank to keep existing photo.</p>}
+
+                    {(formData.cover_photo || initialProfile?.cover_photo_url) && (
+                        <div className="image-preview-container">
+                            <img
+                                src={formData.cover_photo instanceof File ? URL.createObjectURL(formData.cover_photo) : initialProfile?.cover_photo_url}
+                                alt="Business Profile Logo" // Corrected redundancy in alt tag
+                                className="preview-image"
+                                style={{ maxWidth: '100%', maxHeight: '300px' }}
+                            />
+                            {isEditMode && initialProfile?.cover_photo_url && !(formData.cover_photo instanceof File) && <p className="file-hint">Current Cover Photo</p>}
+                        </div>
+                    )}
                 </div>
 
                 <button type="submit" disabled={loading}>

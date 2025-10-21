@@ -1,20 +1,24 @@
 // C:\showpur-mvp\frontend\src\api\api.js
 
 import axios from 'axios';
-// 🛑 CRITICAL CHECK: Ensure this path is correct relative to the utility file 🛑
 import { refreshAccessToken } from '../utils/auth'; 
 
 const baseURL = 'http://127.0.0.1:8000/api/'; 
 
 const api = axios.create({
     baseURL: baseURL,
+    // 🛑 We must set headers outside, or define a fallback, 
+    // but we'll manage Content-Type inside the interceptor.
     headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', 
     },
 });
 
 let isRefreshing = false;
 let failedQueue = [];
+
+// Remove the standalone line of code—it doesn't belong here:
+// await api.patch(`profiles/${profileId}/`, formData);
 
 // ... (processQueue function remains unchanged) ...
 const processQueue = (error, token = null) => {
@@ -28,21 +32,29 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// 1. REQUEST Interceptor: Attach Access Token (UNCHANGED)
+// --- 1. REQUEST Interceptor: Attach Token and Handle File Header ---
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('access_token');
+        
+        // 1. Attach Authorization Token
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+            // CRITICAL: Ensure 'Bearer ' is present with a trailing space.
+            config.headers.Authorization = `Bearer ${token}`; 
         }
+
+        // 2. ✅ CRITICAL FIX for File Uploads (FormData)
+        // If the request body is FormData, remove the 'Content-Type' header 
+        // to allow the browser to set 'multipart/form-data' correctly.
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+        
         return config;
-    },
-    (error) => {
-        return Promise.reject(error);
     }
 );
 
-// 2. RESPONSE Interceptor: Handle 401 Unauthorized (Token Refresh) (UNCHANGED LOGIC)
+// --- 2. RESPONSE Interceptor: Handle 401 Unauthorized (Token Refresh) (UNCHANGED LOGIC) ---
 api.interceptors.response.use(
     (response) => response,
     async (error) => {

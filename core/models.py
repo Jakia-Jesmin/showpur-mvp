@@ -1,12 +1,16 @@
 # core/models.py
 from django.conf import settings
 from django.db import models
+from django.contrib.auth import get_user_model
+
+# Get the User model
+User = get_user_model() 
 
 # 1. Business Profile Model (Owned by the all users)
 class BusinessProfile(models.Model):
     # Link a user to their profile.
     # on_delete=models.CASCADE means if a user is deleted, their profile is too.
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='BusinessProfile', null=True)
     business_name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     contact_email = models.EmailField(unique=True)
@@ -23,7 +27,7 @@ class BusinessProfile(models.Model):
     
 # 2. Product Model (Owned by the Producer/MSME)
 class Product(models.Model):
-    business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='products')
+    business_name = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)
     description = models.TextField()
     
@@ -31,7 +35,7 @@ class Product(models.Model):
     wholesale_price = models.DecimalField(max_digits=10, decimal_places=2) 
     retail_price = models.DecimalField(max_digits=10, decimal_places=2)      
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2)    
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    product_image = models.ImageField(upload_to='products/', blank=True, null=True)
     
     def __str__(self):
         return self.name

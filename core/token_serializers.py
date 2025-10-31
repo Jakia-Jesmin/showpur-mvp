@@ -10,7 +10,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # 🛑 FIX: Use the capitalized related name ('BusinessProfile')
         # and the .exists() method to safely check if the user has any profiles.
-        token['has_profile'] = user.BusinessProfile.exists() 
+        token['has_profile'] = user.business_profile.exists() 
         
         # 💡 FUTURE EXPANSION: If you need to retrieve a profile's ID/Role:
         # profile = user.BusinessProfile.first()

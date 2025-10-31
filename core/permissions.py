@@ -11,27 +11,63 @@ class IsUserOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Write permissions are only allowed to the user of the profile.
+        # Write permissions are only allowed to the owner of the object (assuming 'user' field links to the User).
+        # Note: For BusinessProfile, you might need to check obj.user == request.user
         return obj.user == request.user
 
-# 🛑 Showroom Manager permission class 🛑
+# --- ROLE-BASED PERMISSIONS ---
+
+class IsProducer(permissions.BasePermission):
+    """
+    Custom permission to only allow access to users whose profile role is 'PRODUCER'.
+    This is used for product creation and owner-initiated allocation.
+    """
+    message = 'Access denied. Only Producer accounts can perform this action.'
+
+    def has_permission(self, request, view):
+        # Must be authenticated
+        if not request.user.is_authenticated:
+            return False
+            
+        # Check if the user has a profile and the role is 'PRODUCER'
+        try:
+            return request.user.profile.role == 'PRODUCER'
+        except AttributeError:
+            # Handle case where user has no profile object (shouldn't happen if profile creation is mandatory)
+            return False
+
+class IsStore(permissions.BasePermission):
+    """
+    Custom permission to only allow access to users whose profile role is 'STORE'.
+    This is used for requesting allocation and receiving inventory.
+    """
+    message = 'Access denied. Only Showroom/Store accounts can perform this action.'
+
+    def has_permission(self, request, view):
+        # Must be authenticated
+        if not request.user.is_authenticated:
+            return False
+            
+        # Check if the user has a profile and the role is 'STORE'
+        try:
+            return request.user.profile.role == 'STORE'
+        except AttributeError:
+            return False
+
+# --- GENERIC PROFILE CHECK (Replaced/Simplified) ---
+
 class IsShowroomManager(permissions.BasePermission):
     """
-    Custom permission to only allow users who have an associated BusinessProfile 
-    (required for manager roles like accessing the showroom dashboard).
+    Custom permission to ensure the user has an associated BusinessProfile.
+    (Simplified check since all role-based checks already handle this).
     """
     message = 'You must be associated with a business profile to perform this action.'
 
     def has_permission(self, request, view):
-        # Check if the user is authenticated
+        # This can be simplified since the Producer/Store checks handle the existence check.
+        # If this is ONLY for the dashboard, you might prefer this generic check.
         if not request.user.is_authenticated:
             return False
-        
-        # Check if the user has an associated BusinessProfile
-        # This implicitly checks for a profile since BusinessProfile is linked to User.
-        try:
-            return request.user.businessprofile is not None
-        except:
-            # If the related object does not exist, an exception is raised
-            return False
-        
+            
+        # Using hasattr is cleaner than try/except for checking related objects
+        return hasattr(request.user, 'profile')

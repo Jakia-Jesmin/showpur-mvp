@@ -3,6 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from './api/api'; 
 import './BusinessProfileForm.css';
 
+// Define the role options for the dropdown
+const ROLE_OPTIONS = [
+    { value: 'PRODUCER', label: 'Producer/Product Owner' },
+    { value: 'STORE', label: 'Showroom/Store' },
+]
+
 function BusinessProfileForm({ onCreate, isEditMode }) { 
     const { id } = useParams();
     const navigate = useNavigate();
@@ -15,6 +21,7 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
         address: '',
         website: '',
         facebook_page: '',
+        role: 'STORE',
         // Null is correct for files that haven't been selected yet
         logo: null, 
         cover_photo: null
@@ -57,6 +64,7 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
                 address: data.address || '',
                 website: data.website || '',
                 facebook_page: data.facebook_page || '',
+                role: data.role || 'STORE',
                 // Initialize state with the fetched image URLs (strings) or null
                 logo: data.logo_url || null, 
                 cover_photo: data.cover_photo_url || null 
@@ -163,6 +171,24 @@ function BusinessProfileForm({ onCreate, isEditMode }) {
             <form className="profile-form" onSubmit={handleSubmit}> 
                 {errors.general && <p className="form-error">{errors.general}</p>}
                 
+                {/* 🛑 NEW ROLE SELECTION INPUT 🛑 */}
+                <div className="form-group">
+                    <label>Business Role</label>
+                    <select 
+                        name="role" 
+                        value={formData.role} 
+                        onChange={handleChange} 
+                        required
+                    >
+                        {ROLE_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.role && <p className="form-error">{errors.role}</p>}
+                </div>
+
                 {/* --- Text fields (Business Name, Description, etc.) --- */}
                 
                 <div className="form-group">

@@ -23,7 +23,7 @@ function ShowroomDashboard() {
         const fetchInventory = async () => {
             try {
                 // 🛑 Use api.get: Authorization and Refresh Logic are handled by the interceptor. 🛑
-                const response = await api.get('dashboard/showroom/inventory/');
+                const response = await api.get('/allocations/');
 
                 // Axios automatically throws on 4xx/5xx, so we only handle successful data here
                 const data = response.data;

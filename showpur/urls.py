@@ -4,9 +4,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse # Keep if you want the API root view
-
-
+from django.http import JsonResponse 
+# REMOVED: Unnecessary direct import of Simple JWT views
+# from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView) 
 
 def api_root(request):
     return JsonResponse({
@@ -14,7 +14,6 @@ def api_root(request):
         'endpoints': {
             'admin': '/admin/',
             'api': '/api/',
-            # Note: /api/auth/ is provided by djoser
         }
     })
 
@@ -25,15 +24,22 @@ urlpatterns = [
     # Django Admin
     path('admin/', admin.site.urls),
     
-    # 🎯 FIX: INCLUDE DJOSER URLS HERE 🎯
-    # This inclusion provides the /api/auth/user/ endpoint needed by the frontend
+    # 🎯 CORRECT DJOSER INTEGRATION 🎯
+    # Djoser handles user registration, activation, etc.
     path('api/auth/', include('djoser.urls')), 
-    path('api/auth/', include('djoser.urls.authtoken')),
-    path('api/auth/', include('djoser.urls.jwt')),
+    
+    # Djoser's JWT URLS PROVIDE: /api/auth/jwt/create/ (for login) and /api/auth/jwt/refresh/
+    # This replaces the need for the TokenObtainPairView and TokenRefreshView.
+    path('api/auth/', include('djoser.urls.jwt')), 
+    
+    # REMOVED: djoser.urls.authtoken (Since you use JWT)
+    # REMOVED: Redundant path('api/auth/token/', ...) and path('api/auth/token/refresh/', ...)
 
     # All application-specific logic (profiles, products, etc.)
     path('api/', include('core.urls')),
 ] 
+
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    

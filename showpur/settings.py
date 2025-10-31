@@ -165,6 +165,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication', 
     ),
+
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', # <-- This line is often the culprit
+    ),
     
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -195,9 +199,9 @@ DJOSER = {
     
     # Use standard Djoser endpoints with our custom serializers
     'SERIALIZERS': {
-        'user_create': 'core.serializers.UserCreateSerializer', # Assumes custom serializer in core app
-        'user': 'core.serializers.CustomUserSerializer',             # Assumes custom serializer in core app
-         'current_user': 'core.serializers.CustomUserSerializer',
+        # 'user_create': 'core.serializers.UserCreateSerializer', # Assumes custom serializer in core app
+        'user': 'core.serializers.CustomUserSerializer',
+        'user_create': 'core.serializers.CustomUserSerializer',
     },
     
     # Settings for email links (if you implement email confirmation later)

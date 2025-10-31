@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // Added Link for future consistency
-import axios from 'axios'; // 🛑 Import vanilla Axios 🛑
+import axios from 'axios';
 import './Register.css';
 
 // Create a standalone Axios instance for public (unauthenticated) requests

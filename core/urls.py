@@ -18,7 +18,7 @@ from .views import (
 
 # Initialize the Router
 router = DefaultRouter()
-router.register(r'profiles', BusinessProfileViewSet, basename='business-profile')
+router.register(r'profiles', BusinessProfileViewSet, basename='business_profile')
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'allocations', InventoryAllocationViewSet, basename='allocation')
 router.register(r'inventory', ShowroomInventoryViewSet, basename='inventory')

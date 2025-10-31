@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; 
+import baseApi from './api/baseApi';
 import { jwtDecode } from 'jwt-decode'; 
 import './Login.css';
-
-// Create a standalone Axios instance for UN-AUTHENTICATED requests
-// This prevents the interceptor from trying to attach tokens to the initial login call.
-const publicApi = axios.create({
-    // Use your API base URL
-    baseURL: 'http://localhost:8000/api/', 
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
 
 
 function Login({ setAuth }) {
@@ -29,8 +19,7 @@ function Login({ setAuth }) {
 
         try {
             // 1. Initial login to get tokens
-            const response = await publicApi.post('auth/token/', { username, password });
-
+            const response = await baseApi.post('auth/token/', { username, password });
             const accessToken = response.data.access;
             const refreshToken = response.data.refresh;
 

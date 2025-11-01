@@ -62,6 +62,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'password')
 
+
+
 # --------------------------------------
 # Product Serializer (Focus)
 # --------------------------------------

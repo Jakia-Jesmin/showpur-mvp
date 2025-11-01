@@ -32,10 +32,12 @@ function Register() {
                 username,
                 email,
                 password,
+                first_name: '', 
+                last_name: '',
             });
 
             // If successful (Axios resolves on 2xx status), navigate to login
-            navigate('/login');
+            navigate('/login', { state: { registrationSuccess: true } });
 
         } catch (err) {
             console.error("Registration error:", err.response || err);

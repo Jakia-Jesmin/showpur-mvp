@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import baseApi from './api/baseApi';
 import { jwtDecode } from 'jwt-decode'; 
 import './Login.css';
 
 
 function Login({ setAuth }) {
+    const location = useLocation(); 
+    const [message, setMessage] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false); 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (location.state?.registrationSuccess) {
+            setMessage('Registration successful! Please log in.');
+            // Clear the state so the message doesn't reappear on refresh
+            window.history.replaceState({}, document.title); 
+        }
+    }, [location]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -74,6 +84,7 @@ function Login({ setAuth }) {
         <div className="login-container">
             <form onSubmit={handleSubmit} className="login-form">
                 <h2>Log In</h2>
+                {message && <p className="success-message">{message}</p>}
                 {error && <p className="error-message">{error}</p>}
                 <div className="form-group">
                     <label>Username</label>

@@ -1,17 +1,21 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Django Server",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/manage.py",
-      "args": [
-        "runserver",
-        "127.0.0.1:8000"
-      ],
-      "django": true,
-      "justMyCode": true
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Django",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/showpur_core/manage.py",
+            "args": ["runserver"],
+            "django": true,
+            "justMyCode": true
+        },
+        {
+            "name": "React",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/frontend/src"
+        }
+    ]
 }

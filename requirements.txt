@@ -1,0 +1,25 @@
+# Core
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-environ==0.11.2
+psycopg2-binary==2.9.9
+
+# Authentication
+dj-rest-auth==5.0.2
+django-allauth==0.57.0
+djangorestframework-simplejwt==5.3.0
+
+# Utilities
+Pillow==10.1.0
+django-filter==23.5
+django-storages==1.14.2  # For S3/cloud storage
+celery==5.3.4  # For async tasks
+redis==5.0.1
+
+# Real-time
+channels==4.0.0
+channels-redis==4.1.0
+
+# API Documentation
+drf-yasg==1.21.7

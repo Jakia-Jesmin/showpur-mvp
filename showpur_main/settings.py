@@ -89,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'showpur_db',
         'USER': 'postgres',
-        'PASSWORD': 'JakiaJesmin@123',
+        'PASSWORD': '********',
         'HOST': 'localhost',
         'PORT': '5432',
     }

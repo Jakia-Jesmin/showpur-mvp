@@ -196,7 +196,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         category = self.request.query_params.get('category')
         if category:
-            queryset = queryset.filter(category=category)
+            queryset = queryset.filter(transaction_category_id=category)
         
         party_type = self.request.query_params.get('party_type')
         if party_type:
@@ -352,7 +352,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         )['total'] or 0
         
         # Category breakdown
-        categories = monthly.values('category').annotate(
+        categories = monthly.values('transaction_category').annotate(
             total=Sum('amount'),
             count=Count('id')
         ).order_by('-total')

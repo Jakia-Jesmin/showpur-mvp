@@ -17,6 +17,8 @@ export const useAcShowDashboard = () => {
 
       setMetrics({
         today_cash: data.today_cash || 0,
+        today_income: data.today_income || 0,    // ← Add this
+        today_expenses: data.today_expenses || 0, // ← Add this
         pending_collections: data.pending_collections || 0,
         pending_payments: data.pending_payments || 0,
         cash_forecast: data.cash_forecast || {},
@@ -37,7 +39,11 @@ export const useAcShowDashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
+    const loadDashboard = async () => {
+      await fetchDashboard();
+    };
+
+    void loadDashboard();
   }, [fetchDashboard]);
 
   return { metrics, recentActivities, alerts, loading, error, refresh: fetchDashboard };

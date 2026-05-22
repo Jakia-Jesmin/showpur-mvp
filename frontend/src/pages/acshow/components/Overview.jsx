@@ -24,7 +24,7 @@ const Overview = ({ metrics, activities, alerts, loading, onRefresh }) => {
     <div className="max-w-6xl mx-auto space-y-6">
       
       {/* ===== HERO CASH CARD ===== */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white rounded-2xl p-6 shadow-lg border border-emerald-900/20">
+      <div className="bg-linear-to-br from-emerald-800 to-emerald-950 text-white rounded-2xl p-6 shadow-lg border border-emerald-900/20">
         <div className="flex justify-between items-center mb-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-200/80">
             Today's Position (আজকের ক্যাশ)
@@ -45,37 +45,113 @@ const Overview = ({ metrics, activities, alerts, loading, onRefresh }) => {
           </div>
         </div>
       </div>
+      {/* ===== TODAY'S PROFIT / LOSS ===== */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              Today's Profit/Loss (আজকের লাভ/ক্ষতি)
+            </h3>
+            {(() => {
+              const income = m.today_income || 0;
+              const expense = m.today_expenses || 0;
+              const profit = income - expense;
+              const margin = income > 0 ? ((profit / income) * 100) : 0;
+              const isProfit = profit >= 0;
+
+              return (
+                <div className="mt-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-2xl font-black ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {isProfit ? '+' : '-'}৳{Math.abs(profit).toLocaleString('en-IN')}
+                    </span>
+                    {income > 0 && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        isProfit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                      }`}>
+                        {isProfit ? '↑' : '↓'} {Math.abs(margin).toFixed(1)}% margin
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                    <span>Income: <span className="text-emerald-600 font-semibold">৳{income.toLocaleString('en-IN')}</span></span>
+                    <span>Expense: <span className="text-rose-600 font-semibold">৳{expense.toLocaleString('en-IN')}</span></span>
+                  </div>
+                  {/* Visual bar */}
+                  {income > 0 || expense > 0 ? (
+                    <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                      <div 
+                        className="h-full bg-emerald-500 rounded-l-full transition-all duration-500"
+                        style={{ width: `${income > 0 ? (income / (income + expense)) * 100 : 0}%` }}
+                      />
+                      <div 
+                        className="h-full bg-rose-400 rounded-r-full transition-all duration-500"
+                        style={{ width: `${expense > 0 ? (expense / (income + expense)) * 100 : 0}%` }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-3 h-2 bg-gray-100 rounded-full" />
+                  )}
+                  <div className="flex justify-between mt-1 text-[10px] text-gray-400">
+                    <span>Income (আয়)</span>
+                    <span>Expense (খরচ)</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          
+          {/* Icon */}
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+            (m.today_income || 0) - (m.today_expenses || 0) >= 0 
+              ? 'bg-emerald-100' 
+              : 'bg-rose-100'
+          }`}>
+            {(m.today_income || 0) - (m.today_expenses || 0) >= 0 ? '📈' : '📉'}
+          </div>
+        </div>
+      </div>
 
       {/* ===== QUICK ACTIONS ===== */}
       <div>
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions (দ্রুত কাজ)</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { type: 'collection', icon: <ArrowDownLeft size={24} />, label: 'Receive Money', sub: 'টাকা কালেকশন', color: 'emerald' },
-            { type: 'payment', icon: <ArrowUpRight size={24} />, label: 'Pay Supplier', sub: 'সাপ্লায়ারকে পরিশোধ', color: 'rose' },
-            { type: 'sale', icon: <ShoppingBag size={24} />, label: 'Record Sale', sub: 'বিক্রয় যোগ করুন', color: 'blue' },
-            { type: 'expense', icon: <Plus size={24} />, label: 'Add Expense', sub: 'খরচ হিসাব', color: 'purple' },
-          ].map((btn) => {
-            const colorMap = {
-              emerald: 'text-emerald-600 bg-emerald-50 hover:border-emerald-300',
-              rose: 'text-rose-600 bg-rose-50 hover:border-rose-300',
-              blue: 'text-blue-600 bg-blue-50 hover:border-blue-300',
-              purple: 'text-purple-600 bg-purple-50 hover:border-purple-300',
-            };
-            return (
-              <button
-                key={btn.type}
-                onClick={() => handleQuickAction(btn.type)}
-                className={`flex flex-col items-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md active:scale-95 transition-all text-center ${colorMap[btn.color]}`}
-              >
-                <div className={`p-2 rounded-lg ${colorMap[btn.color].split(' ')[1]}`}>{btn.icon}</div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{btn.label}</p>
-                  <p className="text-[10px] text-gray-400">{btn.sub}</p>
-                </div>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-5 gap-2">
+          
+          <button onClick={() => handleQuickAction('collection')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-emerald-300 hover:shadow-md active:scale-95 transition-all text-center">
+            <span className="text-2xl">💵</span>
+            <span className="text-sm font-bold text-gray-800">Receive</span>
+            <span className="text-[11px] text-gray-500 font-medium">কালেকশন</span>
+          </button>
+
+          <button onClick={() => handleQuickAction('payment')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-rose-300 hover:shadow-md active:scale-95 transition-all text-center">
+            <span className="text-2xl">💸</span>
+            <span className="text-sm font-bold text-gray-800">Pay</span>
+            <span className="text-[11px] text-gray-500 font-medium">পরিশোধ</span>
+          </button>
+
+          <button onClick={() => handleQuickAction('sale')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-300 hover:shadow-md active:scale-95 transition-all text-center">
+            <span className="text-2xl">🛒</span>
+            <span className="text-sm font-bold text-gray-800">Sale</span>
+            <span className="text-[11px] text-gray-500 font-medium">বিক্রয়</span>
+          </button>
+
+          <button onClick={() => handleQuickAction('purchase')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-purple-300 hover:shadow-md active:scale-95 transition-all text-center">
+            <span className="text-2xl">📦</span>
+            <span className="text-sm font-bold text-gray-800">Purchase</span>
+            <span className="text-[11px] text-gray-500 font-medium">কেনা</span>
+          </button>
+
+          <button onClick={() => handleQuickAction('expense')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-orange-300 hover:shadow-md active:scale-95 transition-all text-center">
+            <span className="text-2xl">🧾</span>
+            <span className="text-sm font-bold text-gray-800">Expense</span>
+            <span className="text-[11px] text-gray-500 font-medium">খরচ</span>
+          </button>
+
         </div>
       </div>
 
@@ -120,17 +196,25 @@ const Overview = ({ metrics, activities, alerts, loading, onRefresh }) => {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0 ${
-                    t.transaction_type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                    t.transaction_type === 'income' ? 'bg-emerald-100 text-emerald-600' : 
+                    t.transaction_type === 'expense' ? 'bg-rose-100 text-rose-600' :
+                    t.transaction_type === 'receivable' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
                   }`}>
-                    {t.transaction_type === 'income' ? '↓' : '↑'}
+                    {t.transaction_type === 'income' ? '↑' : 
+                    t.transaction_type === 'expense' ? '↓' :
+                    t.transaction_type === 'receivable' ? '📥' : '📤'}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{t.party_name || t.description}</p>
                     <p className="text-xs text-gray-400">{t.category_display || t.transaction_type_display}</p>
                   </div>
                 </div>
-                <span className={`text-sm font-semibold ml-3 shrink-0 ${t.transaction_type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {t.transaction_type === 'income' ? '+' : '-'}৳{parseFloat(t.amount).toLocaleString('en-IN')}
+                <span className={`text-sm font-semibold ml-3 shrink-0 ${
+                  t.transaction_type === 'income' ? 'text-emerald-600' : 
+                  t.transaction_type === 'expense' ? 'text-rose-600' :
+                  t.transaction_type === 'receivable' ? 'text-amber-600' : 'text-blue-600'
+                }`}>
+                  {t.transaction_type === 'income' || t.transaction_type === 'receivable' ? '+' : '-'}৳{parseFloat(t.amount).toLocaleString('en-IN')}
                 </span>
               </div>
             ))}

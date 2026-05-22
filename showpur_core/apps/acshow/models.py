@@ -7,15 +7,57 @@ from django.core.validators import MinValueValidator
 import uuid
 from decimal import Decimal
 
+
+# ============================================
+# TRANSACTION CATEGORY (Chart of Accounts)
+# ============================================
+
+class TransactionCategory(models.Model):
+    """
+    Simple category system for transactions.
+    SME-friendly — no accounting jargon.
+    
+    Two types: Money In (income) and Money Out (expense).
+    Each business gets default categories automatically.
+    """
+    
+    CATEGORY_TYPES = [
+        ('income', '📥 Money In'),
+        ('expense', '📤 Money Out'),
+    ]
+    
+    business = models.ForeignKey(
+        'accounts.BusinessProfile',
+        on_delete=models.CASCADE,
+        related_name='acshow_categories'
+    )
+    name = models.CharField(max_length=100)
+    name_bn = models.CharField(max_length=100, blank=True, help_text="Bengali name")
+    category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)
+    icon = models.CharField(max_length=10, blank=True)
+    is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'acshow_categories'
+        ordering = ['order', 'name']
+        unique_together = ['business', 'name']
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
+    
+    def __str__(self):
+        return f"{self.icon} {self.name}"
+
+
+# ============================================
+# CORE TRANSACTION
+# ============================================
+
 class AcShowTransaction(models.Model):
     """
     Core financial transaction for AcShow.
-    
-    Business Logic:
-    - Every money movement is tracked here
-    - Simple categories that SME owners understand
-    - Links to Showpur orders and producers
-    - Supports both Showroom and Producer workflows
     
     For SME Users:
     - "Income" = Money you received
@@ -36,19 +78,6 @@ class AcShowTransaction(models.Model):
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
         ('overdue', '⚠️ Overdue'),
-    ]
-    
-    CATEGORY_CHOICES = [
-        ('sales', 'Product Sales'),
-        ('service', 'Service Income'),
-        ('commission', 'Commission'),
-        ('rent', 'Rent'),
-        ('salary', 'Staff Salary'),
-        ('utility', 'Utilities'),
-        ('inventory', 'Inventory Purchase'),
-        ('marketing', 'Marketing'),
-        ('transport', 'Transport'),
-        ('other', 'Other'),
     ]
     
     # Primary fields
@@ -72,26 +101,21 @@ class AcShowTransaction(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
         help_text="Amount in BDT"
     )
-    description = models.TextField(
-        help_text="What was this transaction for?"
-    )
-    category = models.CharField(
-        max_length=50, 
-        choices=CATEGORY_CHOICES, 
-        default='other'
+    description = models.TextField(help_text="What was this transaction for?")
+    
+    # Category — now a ForeignKey instead of CharField
+    transaction_category = models.ForeignKey(
+        TransactionCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions',
+        help_text="Transaction category"
     )
     
     # Party information
-    party_name = models.CharField(
-        max_length=255, 
-        blank=True,
-        help_text="Who is this transaction with?"
-    )
-    party_phone = models.CharField(
-        max_length=20, 
-        blank=True,
-        help_text="Contact number of the party"
-    )
+    party_name = models.CharField(max_length=255, blank=True, help_text="Who is this transaction with?")
+    party_phone = models.CharField(max_length=20, blank=True, help_text="Contact number of the party")
     party_type = models.CharField(
         max_length=20,
         choices=[
@@ -124,73 +148,37 @@ class AcShowTransaction(models.Model):
     )
     
     # Dates
-    transaction_date = models.DateField(
-        default=timezone.now,
-        help_text="When did this transaction happen?"
-    )
-    due_date = models.DateField(
-        null=True, 
-        blank=True,
-        help_text="When is payment due?"
-    )
-    completed_date = models.DateTimeField(
-        null=True, 
-        blank=True,
-        help_text="When was payment completed?"
-    )
+    transaction_date = models.DateField(default=timezone.now, help_text="When did this transaction happen?")
+    due_date = models.DateField(null=True, blank=True, help_text="When is payment due?")
+    completed_date = models.DateTimeField(null=True, blank=True, help_text="When was payment completed?")
     
     # Status tracking
-    status = models.CharField(
-        max_length=20, 
-        choices=STATUS_CHOICES, 
-        default='pending'
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Payment tracking
-    paid_amount = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="How much has been paid so far?"
-    )
-    remaining_amount = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        null=True,
-        blank=True,
-        help_text="How much is still due?"
-    )
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="How much has been paid so far?")
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="How much is still due?")
+    
+    # Source tracking
+    SOURCE_CHOICES = [
+        ('pos', 'POS Terminal'),
+        ('manual', 'Manual Entry'),
+        ('quick', 'Quick Record'),
+        ('showpur', 'Showpur Order'),
+        ('bulk', 'Bulk Import'),
+    ]
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual')
     
     # Recurring transaction support
-    is_recurring = models.BooleanField(
-        default=False,
-        help_text="Is this a recurring transaction?"
-    )
-    recurrence_pattern = models.CharField(
-        max_length=50, 
-        blank=True,
-        choices=[
-            ('daily', 'Daily'),
-            ('weekly', 'Weekly'),
-            ('monthly', 'Monthly'),
-            ('yearly', 'Yearly'),
-        ]
-    )
-    next_recurrence_date = models.DateField(
-        null=True, 
-        blank=True
-    )
+    is_recurring = models.BooleanField(default=False, help_text="Is this a recurring transaction?")
+    recurrence_pattern = models.CharField(max_length=50, blank=True, choices=[
+        ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly'),
+    ])
+    next_recurrence_date = models.DateField(null=True, blank=True)
     
     # Metadata
-    notes = models.TextField(
-        blank=True,
-        help_text="Any additional notes?"
-    )
-    receipt_image = models.ImageField(
-        upload_to='acshow/receipts/', 
-        blank=True, 
-        null=True
-    )
+    notes = models.TextField(blank=True, help_text="Any additional notes?")
+    receipt_image = models.ImageField(upload_to='acshow/receipts/', blank=True, null=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -206,22 +194,20 @@ class AcShowTransaction(models.Model):
             models.Index(fields=['business', 'transaction_date']),
             models.Index(fields=['due_date', 'status']),
             models.Index(fields=['party_type', 'party_name']),
+            models.Index(fields=['transaction_category']),
         ]
     
     def __str__(self):
         return f"{self.get_transaction_type_display()}: ৳{self.amount} - {self.party_name or 'N/A'}"
     
     def save(self, *args, **kwargs):
-        # Auto-calculate remaining amount
         if self.paid_amount and self.amount:
             self.remaining_amount = self.amount - self.paid_amount
         
-        # Auto-update status based on payment
         if self.remaining_amount == 0 and self.status == 'pending':
             self.status = 'completed'
             self.completed_date = timezone.now()
         
-        # Mark as overdue if past due date
         if (self.due_date and 
             self.due_date < timezone.now().date() and 
             self.status == 'pending'):
@@ -231,120 +217,41 @@ class AcShowTransaction(models.Model):
     
     @property
     def is_overdue(self):
-        """Check if transaction is overdue"""
         return self.status == 'overdue'
     
     @property
     def days_overdue(self):
-        """Calculate days past due date"""
         if self.due_date and self.status in ['pending', 'overdue']:
             delta = timezone.now().date() - self.due_date
             return max(0, delta.days)
         return 0
 
 
+# ============================================
+# CASH POSITION
+# ============================================
+
 class AcShowCashPosition(models.Model):
-    """
-    Daily cash position snapshot for AcShow.
-    
-    Business Logic:
-    - Auto-calculated at the start/end of each day
-    - Shows exactly how much cash is available
-    - Tracks all cash movements for the day
-    - Alerts for cash shortages
-    
-    For SME Users:
-    - "Opening Balance" = Cash you started the day with
-    - "Cash In" = All money you received today
-    - "Cash Out" = All money you paid today
-    - "Closing Balance" = Cash you have now
-    """
+    """Daily cash position snapshot."""
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey(
-        'accounts.BusinessProfile',
-        on_delete=models.CASCADE,
-        related_name='acshow_cash_positions'
-    )
+    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_cash_positions')
     date = models.DateField()
     
-    # Balance information
-    opening_balance = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Cash at start of day"
-    )
-    total_cash_in = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Total money received today"
-    )
-    total_cash_out = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Total money spent today"
-    )
-    closing_balance = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Cash at end of day"
-    )
+    opening_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_cash_in = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_cash_out = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    closing_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
-    # Detailed breakdowns
-    cash_in_breakdown = models.JSONField(
-        default=dict, 
-        blank=True,
-        help_text="Breakdown of cash received by category"
-    )
-    # Example: {
-    #     "sales": 50000,
-    #     "collections": 25000,
-    #     "other": 5000
-    # }
+    cash_in_breakdown = models.JSONField(default=dict, blank=True)
+    cash_out_breakdown = models.JSONField(default=dict, blank=True)
     
-    cash_out_breakdown = models.JSONField(
-        default=dict, 
-        blank=True,
-        help_text="Breakdown of cash spent by category"
-    )
-    # Example: {
-    #     "inventory": 30000,
-    #     "rent": 10000,
-    #     "salary": 15000,
-    #     "utilities": 5000
-    # }
+    has_shortfall = models.BooleanField(default=False)
+    shortfall_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
-    # Alerts
-    has_shortfall = models.BooleanField(
-        default=False,
-        help_text="Is there a cash shortage?"
-    )
-    shortfall_amount = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="How much cash is missing?"
-    )
+    upcoming_payables = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    upcoming_receivables = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
-    # Upcoming obligations
-    upcoming_payables = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Total payments due in next 7 days"
-    )
-    upcoming_receivables = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2, 
-        default=0,
-        help_text="Total collections expected in next 7 days"
-    )
-    
-    # Metadata
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -360,47 +267,28 @@ class AcShowCashPosition(models.Model):
         return f"Cash Position {self.date}: ৳{self.closing_balance}"
     
     def calculate_closing(self):
-        """Auto-calculate closing balance"""
-        self.closing_balance = (
-            self.opening_balance + 
-            self.total_cash_in - 
-            self.total_cash_out
-        )
+        self.closing_balance = self.opening_balance + self.total_cash_in - self.total_cash_out
         return self.closing_balance
     
     @property
     def net_cash_flow(self):
-        """Net cash flow for the day"""
         return self.total_cash_in - self.total_cash_out
     
     @property
     def cash_position_status(self):
-        """Get overall cash position status"""
         if self.has_shortfall:
             return 'danger'
-        elif self.closing_balance < 10000:  # Less than ৳10,000
+        elif self.closing_balance < 10000:
             return 'warning'
-        else:
-            return 'healthy'
+        return 'healthy'
 
+
+# ============================================
+# QUICK RECORD
+# ============================================
 
 class QuickRecord(models.Model):
-    """
-    Ultra-simple transaction entry for daily operations.
-    
-    Design Philosophy:
-    - SME owners think: "I got money" or "I paid money"
-    - No accounting jargon
-    - One-click entries for common transactions
-    - Perfect for mobile use
-    
-    For SME Users:
-    - "Collected Money" = Someone paid you
-    - "Made Payment" = You paid someone
-    - "Recorded Sale" = You sold something
-    - "Made Purchase" = You bought something
-    - "Paid Expense" = You paid a bill
-    """
+    """Ultra-simple transaction entry for daily operations."""
     
     ENTRY_TYPES = [
         ('collection', '💰 Collected Money'),
@@ -411,52 +299,20 @@ class QuickRecord(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey(
-        'accounts.BusinessProfile',
-        on_delete=models.CASCADE,
-        related_name='acshow_quick_records'
-    )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='acshow_quick_records'
-    )
+    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_quick_records')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='acshow_quick_records')
     
-    # Simple entry fields
     entry_type = models.CharField(max_length=20, choices=ENTRY_TYPES)
-    amount = models.DecimalField(
-        max_digits=12, 
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))]
-    )
-    description = models.TextField(
-        help_text="What's this for? (e.g., 'Sold 5 bags of rice')"
-    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    description = models.TextField(help_text="What's this for?")
     
-    # Optional details
-    tag = models.CharField(
-        max_length=50, 
-        blank=True,
-        help_text="Quick category (e.g., 'daily', 'weekly', 'one-time')"
-    )
-    party_name = models.CharField(
-        max_length=255, 
-        blank=True,
-        help_text="Who is involved?"
-    )
+    # Category
+    transaction_category = models.ForeignKey(TransactionCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    tag = models.CharField(max_length=50, blank=True)
+    party_name = models.CharField(max_length=255, blank=True)
+    is_paid = models.BooleanField(default=True)
+    due_date = models.DateField(null=True, blank=True)
     
-    # Payment tracking
-    is_paid = models.BooleanField(
-        default=True,
-        help_text="Has the money been paid/received?"
-    )
-    due_date = models.DateField(
-        null=True, 
-        blank=True,
-        help_text="If not paid, when is it due?"
-    )
-    
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -473,7 +329,6 @@ class QuickRecord(models.Model):
         return f"{self.get_entry_type_display()}: ৳{self.amount}"
     
     def create_transaction(self):
-        """Convert quick record to full transaction if needed"""
         if not self.is_paid:
             transaction_type = 'receivable' if self.entry_type == 'sale' else 'payable'
         else:
@@ -485,27 +340,20 @@ class QuickRecord(models.Model):
             transaction_type=transaction_type,
             amount=self.amount,
             description=self.description,
+            transaction_category=self.transaction_category,
             party_name=self.party_name,
             due_date=self.due_date,
+            source='quick',
             status='completed' if self.is_paid else 'pending'
         )
 
 
+# ============================================
+# ALERT
+# ============================================
+
 class AcShowAlert(models.Model):
-    """
-    Smart alerts for business health.
-    
-    Business Logic:
-    - Proactive notifications
-    - Helps prevent cashflow problems
-    - Reminds about due collections
-    - Warns about low stock
-    
-    For SME Users:
-    - "⚠️ Payment due tomorrow"
-    - "📥 Collect ৳5,000 from Karim"
-    - "📊 Stock running low on rice"
-    """
+    """Smart alerts for business health."""
     
     ALERT_TYPES = [
         ('payment_due', 'Payment Due'),
@@ -523,33 +371,20 @@ class AcShowAlert(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey(
-        'accounts.BusinessProfile',
-        on_delete=models.CASCADE,
-        related_name='acshow_alerts'
-    )
+    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_alerts')
     
     alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     title = models.CharField(max_length=255)
     message = models.TextField()
     
-    # Action information
     action_url = models.URLField(blank=True)
     action_label = models.CharField(max_length=100, blank=True)
     
-    # Status
     is_read = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     
-    # Link to related transaction
-    related_transaction = models.ForeignKey(
-        AcShowTransaction,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='alerts'
-    )
+    related_transaction = models.ForeignKey(AcShowTransaction, on_delete=models.CASCADE, null=True, blank=True, related_name='alerts')
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -563,19 +398,12 @@ class AcShowAlert(models.Model):
         return f"{self.get_alert_type_display()}: {self.title}"
 
 
+# ============================================
+# BUSINESS HEALTH
+# ============================================
+
 class BusinessHealth(models.Model):
-    """
-    Overall business health metrics for AcShow dashboard.
-    
-    Business Logic:
-    - Calculated weekly/monthly
-    - Shows trends and patterns
-    - Helps make business decisions
-    
-    For SME Users:
-    - "Business is healthy" / "Needs attention"
-    - See how business is doing at a glance
-    """
+    """Overall business health metrics."""
     
     HEALTH_STATUS = [
         ('healthy', '✅ Healthy'),
@@ -584,52 +412,20 @@ class BusinessHealth(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.OneToOneField(
-        'accounts.BusinessProfile',
-        on_delete=models.CASCADE,
-        related_name='acshow_health'
-    )
+    business = models.OneToOneField('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_health')
     
-    # Overall status
-    health_status = models.CharField(
-        max_length=20, 
-        choices=HEALTH_STATUS, 
-        default='healthy'
-    )
-    health_score = models.IntegerField(
-        default=100,
-        help_text="Business health score (0-100)"
-    )
+    health_status = models.CharField(max_length=20, choices=HEALTH_STATUS, default='healthy')
+    health_score = models.IntegerField(default=100)
     
-    # Key metrics
     monthly_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     monthly_expenses = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    collection_rate = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        default=0,
-        help_text="Percentage of dues collected on time"
-    )
-    cash_buffer_days = models.IntegerField(
-        default=0,
-        help_text="How many days can business run with current cash?"
-    )
+    collection_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    cash_buffer_days = models.IntegerField(default=0)
     
-    # Pressure indicators
-    due_pressure = models.IntegerField(
-        default=0,
-        help_text="Number of overdue collections"
-    )
-    payment_pressure = models.IntegerField(
-        default=0,
-        help_text="Number of urgent payments needed"
-    )
-    stock_pressure = models.IntegerField(
-        default=0,
-        help_text="Number of low stock items"
-    )
+    due_pressure = models.IntegerField(default=0)
+    payment_pressure = models.IntegerField(default=0)
+    stock_pressure = models.IntegerField(default=0)
     
-    # Timestamps
     last_calculated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -642,35 +438,19 @@ class BusinessHealth(models.Model):
         return f"{self.business.business_name} - {self.get_health_status_display()}"
     
     def calculate_health_score(self):
-        """Calculate overall health score based on metrics"""
         score = 100
-        
-        # Deduct for low collection rate
-        if self.collection_rate < 70:
-            score -= 20
-        elif self.collection_rate < 85:
-            score -= 10
-        
-        # Deduct for cash buffer
-        if self.cash_buffer_days < 7:
-            score -= 15
-        elif self.cash_buffer_days < 14:
-            score -= 5
-        
-        # Deduct for pressure indicators
+        if self.collection_rate < 70: score -= 20
+        elif self.collection_rate < 85: score -= 10
+        if self.cash_buffer_days < 7: score -= 15
+        elif self.cash_buffer_days < 14: score -= 5
         score -= min(30, self.due_pressure * 3)
         score -= min(20, self.payment_pressure * 2)
         score -= min(10, self.stock_pressure * 2)
-        
         self.health_score = max(0, min(100, score))
         
-        # Set status based on score
-        if self.health_score >= 80:
-            self.health_status = 'healthy'
-        elif self.health_score >= 50:
-            self.health_status = 'caution'
-        else:
-            self.health_status = 'critical'
+        if self.health_score >= 80: self.health_status = 'healthy'
+        elif self.health_score >= 50: self.health_status = 'caution'
+        else: self.health_status = 'critical'
         
         self.save()
         return self.health_score

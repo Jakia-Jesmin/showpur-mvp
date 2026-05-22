@@ -6,7 +6,7 @@ const Sidebar = ({ menuItems, activeMenu, onMenuClick, user, onLogout }) => {
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full shadow-sm z-20">
       {/* Brand */}
       <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl flex items-center justify-center font-black text-lg shadow-md">
+        <div className="w-10 h-10 bg-linear-to-br from-emerald-600 to-emerald-800 text-white rounded-xl flex items-center justify-center font-black text-lg shadow-md">
           SP
         </div>
         <div>
@@ -18,30 +18,37 @@ const Sidebar = ({ menuItems, activeMenu, onMenuClick, user, onLogout }) => {
       {/* Menu */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeMenu === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onMenuClick(item)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                isActive
-                  ? 'bg-emerald-50 text-emerald-800 shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              }`}
-            >
-              <Icon size={18} className={isActive ? 'text-emerald-700' : 'text-gray-400'} />
-              <span className="leading-tight">{item.label}</span>
-              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-600" />}
-            </button>
-          );
-        })}
+            if (item.isDivider) {
+              return <div key={item.id} className="my-2 border-t border-gray-100" />;
+            }
+            
+            const Icon = item.icon;
+            const isActive = activeMenu === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => onMenuClick(item)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                  item.isQuick 
+                    ? 'bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100'
+                    : isActive 
+                      ? 'bg-emerald-50 text-emerald-800 shadow-sm' 
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                <Icon size={18} className={isActive || item.isQuick ? 'text-emerald-700' : 'text-gray-400'} />
+                <span className="leading-tight">{item.label}</span>
+                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+              </button>
+            );
+          })}
       </nav>
 
       {/* User Footer */}
       <div className="p-4 border-t border-gray-100 bg-gray-50/80">
         <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-linear-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
             {(user?.full_name || user?.username || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">

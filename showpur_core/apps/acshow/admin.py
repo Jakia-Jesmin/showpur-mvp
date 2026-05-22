@@ -19,7 +19,7 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
         'party_name', 'status_badge', 'transaction_date', 'due_date'
     ]
     list_filter = [
-        'transaction_type', 'status', 'category', 'party_type',
+        'transaction_type', 'status', 'transaction_category', 'party_type',
         'transaction_date', 'due_date'
     ]
     search_fields = [
@@ -36,7 +36,7 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
         ('Details', {
             'fields': (
                 'transaction_type', 'amount', 'paid_amount',
-                'remaining_amount', 'description', 'category'
+                'remaining_amount', 'description', 'transaction_category'
             )
         }),
         ('Party', {

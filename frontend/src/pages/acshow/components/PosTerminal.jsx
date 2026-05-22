@@ -2,10 +2,11 @@ import React, { useState, useCallback } from 'react';
 import QuickRecordModal from '@/pages/acshow/QuickRecordModal';
 
 const POS_BUTTONS = [
-  { icon: '🛒', label: 'New Sale', sub: 'বিক্রয়', type: 'sale', color: 'bg-gradient-to-br from-blue-500 to-blue-700' },
-  { icon: '💰', label: 'Collection', sub: 'কালেকশন', type: 'collection', color: 'bg-gradient-to-br from-emerald-500 to-emerald-700' },
-  { icon: '💸', label: 'Payment', sub: 'পরিশোধ', type: 'payment', color: 'bg-gradient-to-br from-rose-500 to-rose-700' },
-  { icon: '🧾', label: 'Expense', sub: 'খরচ', type: 'expense', color: 'bg-gradient-to-br from-purple-500 to-purple-700' },
+  { icon: '💵', label: 'Receive Money', sub: 'টাকা কালেকশন', type: 'collection', color: 'bg-gradient-to-br from-emerald-500 to-emerald-700' },
+  { icon: '💸', label: 'Pay Supplier', sub: 'সাপ্লায়ারকে পরিশোধ', type: 'payment', color: 'bg-gradient-to-br from-rose-500 to-rose-700' },
+  { icon: '🛒', label: 'Record Sale', sub: 'বিক্রয় যোগ করুন', type: 'sale', color: 'bg-gradient-to-br from-blue-500 to-blue-700' },
+  { icon: '📦', label: 'Record Purchase', sub: 'কেনা যোগ করুন', type: 'purchase', color: 'bg-gradient-to-br from-purple-500 to-purple-700' },
+  { icon: '🧾', label: 'Add Expense', sub: 'খরচ হিসাব', type: 'expense', color: 'bg-gradient-to-br from-orange-500 to-orange-700' },
 ];
 
 const PosTerminal = ({ onRefresh }) => {

@@ -12,4 +12,8 @@ export const accountsAPI = {
   
   changePassword: (oldPassword, newPassword) => 
     baseApi.post('/auth/change-password/', { old_password: oldPassword, new_password: newPassword }),
+
+  forgotPassword: (email) => baseApi.post('/auth/forgot-password/', { email }),
+  resetPassword: (token, email, newPassword) => 
+    baseApi.post('/auth/reset-password/', { token, email, new_password: newPassword }),
 };

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'apps.dashboard',
     'apps.notifications',
     'apps.search',
+    'apps.acshow',
 ]
 
 MIDDLEWARE = [
@@ -89,7 +90,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'showpur_db',
         'USER': 'postgres',
-        'PASSWORD': '********',
+        'PASSWORD': 'JakiaJesmin@123',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -153,7 +154,6 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',

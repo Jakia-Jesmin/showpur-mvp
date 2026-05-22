@@ -37,31 +37,39 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+    email = serializers.EmailField(required=False)
+    username = serializers.CharField(required=False)
     password = serializers.CharField(required=True, write_only=True)
     
     def validate(self, attrs):
         email = attrs.get('email')
+        username = attrs.get('username')
         password = attrs.get('password')
         
-        if email and password:
+        if not email and not username:
+            raise serializers.ValidationError('Must include "email" or "username".')
+        
+        if email:
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
-                raise serializers.ValidationError('Invalid email or password.')
-            
-            user = authenticate(username=user.username, password=password)
-            
-            if not user:
-                raise serializers.ValidationError('Invalid email or password.')
-            
-            if not user.is_active:
-                raise serializers.ValidationError('User account is disabled.')
-            
-            attrs['user'] = user
-            return attrs
+                raise serializers.ValidationError('Invalid Username or Password.')
+        else:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise serializers.ValidationError('Invalid Username or Password.')
         
-        raise serializers.ValidationError('Must include "email" and "password".')
+        user = authenticate(username=user.username, password=password)
+        
+        if not user:
+            raise serializers.ValidationError('Invalid Username or Password.')
+        
+        if not user.is_active:
+            raise serializers.ValidationError('User account is disabled.')
+        
+        attrs['user'] = user
+        return attrs
 
 class BusinessProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

@@ -10,6 +10,9 @@ from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer, 
     BusinessProfileSerializer, ChangePasswordSerializer, UserUpdateSerializer
 )
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+from datetime import timedelta
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -184,3 +187,93 @@ class BusinessProfileBySlugView(APIView):
         user = get_object_or_404(User, business_name__iexact=business_name)
         serializer = UserSerializer(user)
         return Response(serializer.data)
+
+class ForgotPasswordView(APIView):
+    """
+    Generate a reset token for the user.
+    In production, this sends an email. For now, returns the token directly.
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        
+        if not email:
+            return Response(
+                {'error': 'Email is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not (security)
+            return Response({
+                'message': 'If the email exists, a reset token has been generated.',
+                'token': None  # In production, this would be sent via email
+            })
+        
+        # Generate token valid for 1 hour
+        token = get_random_string(64)
+        user.reset_token = token
+        user.reset_token_expiry = timezone.now() + timedelta(hours=1)
+        user.save(update_fields=['reset_token', 'reset_token_expiry'])
+        
+        # In production: send email with link
+        # For now: return token directly (development only)
+        reset_link = f"http://localhost:5173/reset-password?token={token}&email={email}"
+        
+        return Response({
+            'message': 'Reset token generated.',
+            'token': token,  # Remove in production
+            'reset_link': reset_link,  # Remove in production
+        })
+    
+# Add to views.py
+
+class ResetPasswordView(APIView):
+    """
+    Reset password using the token from forgot password.
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        token = request.data.get('token')
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+        
+        if not all([token, email, new_password]):
+            return Response(
+                {'error': 'Token, email, and new password are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email, reset_token=token)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Invalid or expired reset token.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check token expiry
+        if user.reset_token_expiry and user.reset_token_expiry < timezone.now():
+            return Response(
+                {'error': 'Reset token has expired. Please request a new one.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate password
+        if len(new_password) < 8:
+            return Response(
+                {'error': 'Password must be at least 8 characters.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Set new password
+        user.set_password(new_password)
+        user.reset_token = None
+        user.reset_token_expiry = None
+        user.save()
+        
+        return Response({'message': 'Password reset successful. You can now login.'})

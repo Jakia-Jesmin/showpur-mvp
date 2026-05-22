@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, LoginView, LogoutView, ProfileView, ChangePasswordView,
     BusinessProfileView, FollowUnfollowView, AllBusinessProfilesView, 
-    UserDetailView, BusinessProfileBySlugView  # ← Added missing import
+    UserDetailView, BusinessProfileBySlugView, ForgotPasswordView, ResetPasswordView  # ← Added missing import
 )
 
 urlpatterns = [
@@ -27,4 +27,8 @@ urlpatterns = [
     # User details
     path('user/<int:user_id>/', UserDetailView.as_view(), name='user-detail'),
     path('business/<slug:slug>/', BusinessProfileBySlugView.as_view(), name='business-profile-slug'),
+    
+    #Password Reset
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 ]

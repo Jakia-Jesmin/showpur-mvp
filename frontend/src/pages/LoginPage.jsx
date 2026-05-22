@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 function LoginForm({ onSuccess }) {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
@@ -21,12 +22,12 @@ function LoginForm({ onSuccess }) {
     setLoading(true);
     setErrors({});
 
-    const result = await login(formData.email, formData.password, rememberMe);
+    const result = await login(formData.username, formData.password, rememberMe);
     
     if (result.success) {
       if (onSuccess) onSuccess(result.user);
     } else {
-      setErrors(result.error || { general: 'Invalid credentials. Please try again.' });
+      setErrors({ general: result.error || 'Invalid Username or Password. Please try again.' });
     }
     setLoading(false);
   };
@@ -48,18 +49,18 @@ function LoginForm({ onSuccess }) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1">
-          <label className="text-sm font-bold text-gray-700 ml-1">Email Address</label>
+          <label className="text-sm font-bold text-gray-700 ml-1">Username</label>
           <input
-            type="email" name="email" value={formData.email}
-            onChange={handleChange} required placeholder="email@business.com"
-            className={inputClass('email')}
+            type="text" name="username" value={formData.username || ''}
+            onChange={handleChange} required placeholder="Username"
+            className={inputClass('username')}
           />
         </div>
 
         <div className="space-y-1">
           <div className="flex justify-between items-center px-1">
             <label className="text-sm font-bold text-gray-700">Password</label>
-            <button type="button" className="text-[10px] font-black text-purple-600 hover:underline uppercase tracking-widest">Forgot?</button>
+            <Link to="/forgot-password" className="text-[10px] font-black text-purple-600 hover:underline uppercase tracking-widest">Forgot?</Link>
           </div>
           <div className="relative">
             <input

@@ -20,8 +20,27 @@ export const useAcShowDashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+    let isMounted = true;
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        const response = await acshowAPI.getDashboard();
+        if (!isMounted) return;
+        setData(response.data.data);
+        setError(null);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err.response?.data?.message || 'Failed to load dashboard');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return { data, loading, error, refresh: fetchDashboard };
 };
@@ -58,9 +77,20 @@ export const useAlerts = () => {
   }, []);
 
   useEffect(() => {
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 60000);
-    return () => clearInterval(interval);
+    let isCancelled = false;
+    // call asynchronously to avoid synchronous setState inside effect
+    Promise.resolve().then(() => {
+      if (!isCancelled) fetchAlerts();
+    });
+
+    const interval = setInterval(() => {
+      if (!isCancelled) fetchAlerts();
+    }, 60000);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
   }, [fetchAlerts]);
 
   const markAsRead = async (ids) => {

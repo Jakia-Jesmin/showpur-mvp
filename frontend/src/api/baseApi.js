@@ -29,7 +29,7 @@ const extractErrorMessage = async (response) => {
     }
 
     // Flat error fields
-    const fields = ['detail', 'email', 'username', 'password', 'old_password', 
+    const fields = ['detail', 'email', 'username', 'password', 'current_password', 
                     'new_password', 'phone', 'non_field_errors', 'general'];
 
     fields.forEach((field) => {

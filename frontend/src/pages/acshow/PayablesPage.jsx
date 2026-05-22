@@ -6,6 +6,7 @@ import { acshowAPI } from '@/api/acshow';
 import TransactionItem from '@/components/acshow/TransactionItem';
 import Spinner from '@/components/ui/Spinner';
 import { AlertTriangle, Clock, ChevronRight } from 'lucide-react';
+import EmptyState from '@/components/acshow/EmptyState';
 
 const PayablesPage = () => {
   const navigate = useNavigate();

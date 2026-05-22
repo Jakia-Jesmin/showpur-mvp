@@ -98,7 +98,7 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(required=True, write_only=True)
+    current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password])
     new_password2 = serializers.CharField(required=True, write_only=True)
     
@@ -107,10 +107,10 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": "Password fields didn't match."})
         return attrs
     
-    def validate_old_password(self, value):
+    def validate_current_password(self, value):
         user = self.context['request'].user
         if not user.check_password(value):
-            raise serializers.ValidationError("Old password is incorrect.")
+            raise serializers.ValidationError("Current password is incorrect.")
         return value
 
 class UserUpdateSerializer(serializers.ModelSerializer):

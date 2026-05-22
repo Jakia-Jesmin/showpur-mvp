@@ -37,6 +37,7 @@ import Spinner from '@/components/ui/Spinner';
 // Password Reset
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import ChangePasswordPage from '@/pages/ChangePasswordPage';
 
 // ============================================
 // LOADING COMPONENT
@@ -153,7 +154,8 @@ function AppRoutes() {
       {/* PASSWORD RESET */}
       {/* ============================================ */}
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />.
+      <Route path="/acshow/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
 
       {/* ============================================ */}
       {/* ACSHOW ROUTES */}

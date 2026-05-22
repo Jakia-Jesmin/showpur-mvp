@@ -7,6 +7,7 @@ import TransactionItem from '@/components/acshow/TransactionItem';
 import QuickRecordModal from '@/pages/acshow/QuickRecordModal';
 import Spinner from '@/components/ui/Spinner';
 import { ChevronRight, Search, Filter, X, Plus, TrendingUp, TrendingDown, Wallet, Percent } from 'lucide-react';
+import EmptyState from '@/components/acshow/EmptyState';
 
 // ============================================
 // CONSTANTS

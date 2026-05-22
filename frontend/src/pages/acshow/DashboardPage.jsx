@@ -126,7 +126,7 @@ const DashboardPage = () => {
             <button
               key={item.id}
               onClick={() => handleMenuClick(item)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg min-w-[56px] ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg min-w-14 ${
                 isActive ? 'text-emerald-600' : 'text-gray-400'
               }`}
             >

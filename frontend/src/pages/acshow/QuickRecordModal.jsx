@@ -1,7 +1,10 @@
 // frontend/src/pages/acshow/QuickRecordModal.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { acshowAPI } from '@/api/acshow';
+import QuickContactModal from '@/pages/acshow/components/QuickContactModal';
+import { X } from 'lucide-react';
+import { contactsAPI } from '@/api/contacts';
 
 const QuickRecordModal = ({ type, onClose, onSuccess }) => {
   const [amount, setAmount] = useState('');
@@ -9,6 +12,17 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
   const [partyName, setPartyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Contact state
+  const [contactId, setContactId] = useState('');
+  const [contacts, setContacts] = useState([]);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactType, setContactType] = useState('customer');
+  
+  // Product state
+  const [productId, setProductId] = useState('');
+  const [products, setProducts] = useState([]);
+  const [quantity, setQuantity] = useState('1');
 
   const typeConfig = {
     collection: {
@@ -17,6 +31,7 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
       focusColor: 'focus:border-emerald-500 focus:ring-emerald-200',
       btnColor: 'bg-emerald-600 hover:bg-emerald-700',
       quickHover: 'hover:bg-emerald-50 hover:text-emerald-600',
+      showContact: true, contactType: 'customer', showProduct: false,
     },
     payment: {
       icon: '💸', title: 'Pay Supplier', entryType: 'payment',
@@ -24,20 +39,23 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
       focusColor: 'focus:border-rose-500 focus:ring-rose-200',
       btnColor: 'bg-rose-600 hover:bg-rose-700',
       quickHover: 'hover:bg-rose-50 hover:text-rose-600',
+      showContact: true, contactType: 'supplier', showProduct: false,
     },
     sale: {
       icon: '🛒', title: 'Record Sale', entryType: 'sale',
-      placeholder: 'What did you sell?', color: 'blue',
+      placeholder: 'Customer name', color: 'blue',
       focusColor: 'focus:border-blue-500 focus:ring-blue-200',
       btnColor: 'bg-blue-600 hover:bg-blue-700',
       quickHover: 'hover:bg-blue-50 hover:text-blue-600',
+      showContact: true, contactType: 'customer', showProduct: true,
     },
     purchase: {
       icon: '📦', title: 'Record Purchase', entryType: 'purchase',
-      placeholder: 'What did you buy?', color: 'purple',
+      placeholder: 'Supplier name', color: 'purple',
       focusColor: 'focus:border-purple-500 focus:ring-purple-200',
       btnColor: 'bg-purple-600 hover:bg-purple-700',
       quickHover: 'hover:bg-purple-50 hover:text-purple-600',
+      showContact: true, contactType: 'supplier', showProduct: true,
     },
     expense: {
       icon: '🧾', title: 'Add Expense', entryType: 'expense',
@@ -45,10 +63,46 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
       focusColor: 'focus:border-orange-500 focus:ring-orange-200',
       btnColor: 'bg-orange-600 hover:bg-orange-700',
       quickHover: 'hover:bg-orange-50 hover:text-orange-600',
+      showContact: false, showProduct: false,
     },
   };
 
   const config = typeConfig[type] || typeConfig.collection;
+
+  // Fetch contacts
+  const fetchContacts = useCallback(async () => {
+    if (config.showContact) {
+      try {
+        const res = await contactsAPI.list(config.contactType);
+        const data = res.results || res;
+        setContacts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch contacts:', err);
+      }
+    }
+  }, [config.showContact, config.contactType]);
+
+  // Fetch products (for sale/purchase)
+  const fetchProducts = useCallback(async () => {
+    if (config.showProduct) {
+      try {
+        // Use existing products API or create one
+        const res = await acshowAPI.getProducts?.() || { data: { results: [] } };
+        setProducts(res.data.results || res.data);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      }
+    }
+  }, [config.showProduct]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchContacts();
+      await fetchProducts();
+    };
+
+    loadData();
+  }, [fetchContacts, fetchProducts]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,19 +113,30 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
     setLoading(true);
     setError('');
     try {
-      await acshowAPI.createQuickRecord({
+      const payload = {
         entry_type: config.entryType,
         amount: parseFloat(amount),
         description: description || `${config.title}`,
         party_name: partyName,
         is_paid: true,
-      });
+      };
+      
+      if (contactId) payload.contact = contactId;
+      if (productId) payload.product = productId;
+      if (quantity) payload.quantity = quantity;
+      
+      await acshowAPI.createQuickRecord(payload);
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save record');
+      setError(err.message || 'Failed to save record');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleContactAdded = () => {
+    setShowContactModal(false);
+    fetchContacts();
   };
 
   return (
@@ -79,14 +144,54 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl">
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕ Cancel</button>
+        <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           <h2 className="font-semibold text-gray-800">{config.icon} {config.title}</h2>
-          <div className="w-16" />
+          <div className="w-5" />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+
+          {/* Contact Dropdown */}
+          {config.showContact && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {config.contactType === 'customer' ? '👤 Customer' : '🏭 Supplier'}
+              </label>
+              <select value={contactId} onChange={(e) => setContactId(e.target.value)}
+                className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none transition-all ${config.focusColor}`}>
+                <option value="">Select {config.contactType}...</option>
+                {contacts.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+              </select>
+              <button type="button" onClick={() => { setContactType(config.contactType); setShowContactModal(true); }}
+                className="text-xs text-emerald-600 font-medium mt-1 hover:text-emerald-700">
+                + Add New {config.contactType === 'customer' ? 'Customer' : 'Supplier'}
+              </button>
+            </div>
+          )}
+
+          {/* Product Dropdown (Sale/Purchase only) */}
+          {config.showProduct && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">📦 Product</label>
+              <select value={productId} onChange={(e) => setProductId(e.target.value)}
+                className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none transition-all ${config.focusColor}`}>
+                <option value="">Select product...</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Quantity (Sale/Purchase only) */}
+          {config.showProduct && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)}
+                placeholder="1" min="0.01" step="0.01"
+                className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none transition-all ${config.focusColor}`} />
+            </div>
+          )}
 
           {/* Amount */}
           <div>
@@ -107,7 +212,7 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
             ))}
           </div>
 
-          {/* Party Name */}
+          {/* Party Name (fallback) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{config.placeholder}</label>
             <input type="text" value={partyName} onChange={(e) => setPartyName(e.target.value)}
@@ -133,6 +238,15 @@ const QuickRecordModal = ({ type, onClose, onSuccess }) => {
           </button>
         </form>
       </div>
+
+      {/* Quick Contact Modal */}
+      {showContactModal && (
+        <QuickContactModal
+          type={contactType}
+          onClose={() => setShowContactModal(false)}
+          onSuccess={handleContactAdded}
+        />
+      )}
     </div>
   );
 };

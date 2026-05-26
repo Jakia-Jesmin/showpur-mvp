@@ -48,4 +48,14 @@ export const acshowAPI = {
   // Reports
   getCashflowReport: (days = 30) => 
     apiClient.get(`/acshow/reports/cashflow/?days=${days}`),
+
+  // Contacts
+  getContacts: (type) => {
+    const params = type ? `?type=${type}` : '';
+    return apiClient.get(`/acshow/contacts/${params}`);
+  },
+  createContact: (data) => apiClient.post('/acshow/contacts/', data),
+
+  // Products
+  getProducts: () => apiClient.get('/products/'),
 };

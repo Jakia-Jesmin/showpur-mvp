@@ -1,32 +1,24 @@
-import { apiRequest } from './api';
+// frontend/src/api/products.js
+
+import apiClient from './baseApi';
 
 export const productsAPI = {
-  // Get all products for current user
-  getAll: () => apiRequest('/products/'),
+  list: (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.owner) params.append('owner', filters.owner);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.search) params.append('search', filters.search);
+    const qs = params.toString();
+    return apiClient.get(`/products/${qs ? `?${qs}` : ''}`);
+  },
   
-  // Get single product
-  getById: (id) => apiRequest(`/products/${id}/`),
+  getById: (id) => apiClient.get(`/products/${id}/`),
   
-  // Create new product
-  create: (productData) => apiRequest('/products/', {
-    method: 'POST',
-    body: JSON.stringify(productData),
-  }),
+  create: (data) => apiClient.post('/products/', data),
   
-  // Update product
-  update: (id, productData) => apiRequest(`/products/${id}/`, {
-    method: 'PUT',
-    body: JSON.stringify(productData),
-  }),
+  update: (id, data) => apiClient.put(`/products/${id}/`, data),
   
-  // Delete product
-  delete: (id) => apiRequest(`/products/${id}/`, {
-    method: 'DELETE',
-  }),
+  delete: (id) => apiClient.delete(`/products/${id}/`),
   
-  // Toggle product active status
-  toggleActive: (id, isActive) => apiRequest(`/products/${id}/`, {
-    method: 'PUT',
-    body: JSON.stringify({ is_active: isActive }),
-  }),
+  getMyProducts: () => apiClient.get('/products/my-products/'),
 };

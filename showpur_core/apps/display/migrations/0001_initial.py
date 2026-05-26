@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('connections', '0001_initial'),
         ('products', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -42,7 +41,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('approved_at', models.DateTimeField(blank=True, null=True)),
-                ('connection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_agreements', to='connections.connection')),
+                ('connection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_agreements', to='connections.Connection')),
                 ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_agreements', to='products.product')),
                 ('showroom', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='display_agreements', to=settings.AUTH_USER_MODEL)),
             ],

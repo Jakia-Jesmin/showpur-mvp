@@ -8,6 +8,7 @@ router = DefaultRouter()
 router.register(r'transactions', views.TransactionViewSet, basename='transaction')
 router.register(r'quick-records', views.QuickRecordViewSet, basename='quick-record')
 router.register(r'cash-positions', views.CashPositionViewSet, basename='cash-position')
+router.register(r'contacts', views.ContactViewSet, basename='contact')
 router.register(r'alerts', views.AlertViewSet, basename='alert')
 
 urlpatterns = [

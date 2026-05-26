@@ -1,5 +1,5 @@
 import { LayoutDashboard, ArrowLeftRight, ArrowDownLeft, ArrowUpRight, TrendingUp, Activity, Settings, ShoppingCart, DollarSign, Receipt, Package, CreditCard } from 'lucide-react';
-import { Bell, RefreshCw, Menu, X } from 'lucide-react';
+import { Bell, RefreshCw, Menu, X, Users } from 'lucide-react';
 
 export const MENU_ITEMS = [
   { id: 'dashboard', label: 'Dashboard (ড্যাশবোর্ড)', icon: LayoutDashboard, path: '/acshow' },
@@ -13,6 +13,8 @@ export const MENU_ITEMS = [
   { id: 'quick-expense', label: 'Add Expense (খরচ)', icon: Receipt, path: '/acshow?action=expense', isQuick: true },
   
   // Main Menu
+  { id: 'contacts', label: 'Contacts (পরিচিতি)', icon: Users, path: '/acshow/contacts' },
+  { id: 'products', label: 'Products (পণ্য)', icon: Package, path: '/acshow/products' },
   { id: 'divider2', label: '', icon: null, path: null, isDivider: true },
   { id: 'cashflow', label: 'Cashflow (ক্যাশফ্লো)', icon: TrendingUp, path: '/acshow/cashflow' },
   { id: 'health', label: 'Business Health', icon: Activity, path: '/acshow/health' },

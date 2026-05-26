@@ -1,8 +1,51 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import ConnectionRequest, Connection
+from .models import ConnectionRequest, Connection, Contact
 from apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
 
+class ContactSerializer(serializers.ModelSerializer):
+    """Customer & Supplier serializer."""
+    
+    contact_type_display = serializers.CharField(source='get_contact_type_display', read_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    
+    class Meta:
+        model = Contact
+        fields = [
+            'id', 'contact_type', 'contact_type_display',
+            'company_name', 'proprietor_name', 'business_address',
+            'phone', 'email',
+            'total_due', 'total_payable',
+            'is_active', 'linked_business',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'total_due', 'total_payable', 'created_at', 'updated_at']
+    
+    def validate(self, data):
+        request = self.context.get('request')
+        business = request.user.profile
+        phone = data.get('phone', '').strip()
+        contact_type = data.get('contact_type')
+        
+        if phone:
+            existing = Contact.objects.filter(
+                business=business,
+                phone=phone,
+                contact_type=contact_type
+            ).exclude(pk=self.instance.pk if self.instance else None)
+            
+            if existing.exists():
+                # Soft warning — don't block
+                data['duplicate_warning'] = f"'{existing.first().company_name}' already uses this number"
+        
+        return data
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        business = request.user.profile
+        validated_data.pop('duplicate_warning', None)  # Remove before save
+        return Contact.objects.create(business=business, **validated_data)
+    
 class ConnectionRequestSerializer(serializers.ModelSerializer):
     from_user_email = serializers.EmailField(source='from_user.email', read_only=True)
     to_user_email = serializers.EmailField(source='to_user.email', read_only=True)
@@ -101,7 +144,6 @@ class ConnectionSerializer(serializers.ModelSerializer):
         if obj.ended_at:
             return (obj.ended_at - obj.started_at).days
         return (timezone.now() - obj.started_at).days
-
 class PendingCountSerializer(serializers.Serializer):
     received_count = serializers.IntegerField()
     sent_count = serializers.IntegerField()

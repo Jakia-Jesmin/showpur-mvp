@@ -26,7 +26,7 @@ import TransactionDetailPage from '@/pages/acshow/TransactionDetailPage';
 import CashflowPage from '@/pages/acshow/CashflowPage';
 import ReceivablesPage from '@/pages/acshow/ReceivablesPage';
 import PayablesPage from '@/pages/acshow/PayablesPage';
-import AlertsPage from '@/pages/acshow/AlertsPage';
+import AlertsPage from '@/pages/acshow/alerts/AlertsPage';
 import HealthPage from '@/pages/acshow/HealthPage';
 import SettingsPage from '@/pages/acshow/SettingsPage';
 
@@ -95,7 +95,7 @@ function AppRoutes() {
       {/* ============================================ */}
 
       <Route
-        path="/dashboard"
+        path="/dashboard/*"
         element={
           <PrivateRoute>
             <AcShowDashboard />
@@ -160,7 +160,7 @@ function AppRoutes() {
       {/* ============================================ */}
       {/* ACSHOW ROUTES */}
       {/* ============================================ */}
-
+    
       <Route
         path="/acshow/trial"
         element={
@@ -169,8 +169,20 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+
+      {/* Password Change */}
       <Route
-        path="/acshow/dashboard"
+        path="/acshow/change-password"
+        element={
+          <PrivateRoute>
+            <ChangePasswordPage />
+          </PrivateRoute>
+        }
+      />
+
+      {/* All other AcShow routes handled by DashboardPage */}
+      <Route
+        path="/acshow/*"
         element={
           <PrivateRoute>
             <AcShowRoute>
@@ -179,87 +191,7 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
-      <Route
-        path="/acshow/transactions"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <TransactionsPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/transactions/:id"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <TransactionDetailPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/cashflow"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <CashflowPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/receivables"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <ReceivablesPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/payables"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <PayablesPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/alerts"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <AlertsPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/health"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <HealthPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/acshow/settings"
-        element={
-          <PrivateRoute>
-            <AcShowRoute>
-              <SettingsPage />
-            </AcShowRoute>
-          </PrivateRoute>
-        }
-      />
-      
+
       {/* ============================================ */}
       {/* 404 - CATCH ALL */}
       {/* ============================================ */}

@@ -13,6 +13,9 @@ import SettingsView from '@/pages/acshow/components/SettingsView';
 import QuickRecordModal from '@/pages/acshow/QuickRecordModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Bell, RefreshCw, Menu, X } from 'lucide-react';
+import ContactsPage from '@/pages/acshow/contacts/ContactsPage';
+import ProductsPage from '@/pages/acshow/products/ProductsPage';
+import AlertsPage from '@/pages/acshow/alerts/AlertsPage';
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -111,7 +114,11 @@ const DashboardPage = () => {
               <Route path="operations" element={<OperationsOverview />} />
               <Route path="pos" element={<PosTerminal onRefresh={refresh} />} />
               <Route path="reports" element={<ReportsList />} />
+              <Route path="contacts" element={<ContactsPage />} />
               <Route path="settings" element={<SettingsView />} />
+              <Route path="products" element={<ProductsPage />} />
+              <Route path="alerts" element={<AlertsPage />} />
+              <Route path="*" element={<div className="text-center py-12">Page not found</div>} />
             </Routes>
           </ErrorBoundary>
         </main>

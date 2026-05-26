@@ -5,3 +5,7 @@ class ProductsConfig(AppConfig):
     name = 'apps.products'
     label = 'products'
     verbose_name = 'Products & Inventory'
+    
+    def ready(self):
+        from . import signals
+ 

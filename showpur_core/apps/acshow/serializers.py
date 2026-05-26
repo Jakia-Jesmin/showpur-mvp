@@ -3,21 +3,17 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Sum
-from .models import (
-    AcShowTransaction, 
-    AcShowCashPosition, 
-    QuickRecord,
-    AcShowAlert,
-    BusinessHealth,
-    TransactionCategory
-)
 from apps.accounts.models import BusinessProfile
+from .models import (
+    AcShowTransaction, AcShowCashPosition, QuickRecord,
+    AcShowAlert, BusinessHealth, TransactionCategory
+)
+from apps.connections.models import Contact
 
 
 # ============================================
 # TRANSACTION CATEGORY SERIALIZER
 # ============================================
-
 class TransactionCategorySerializer(serializers.ModelSerializer):
     """Simple serializer for category dropdown."""
     
@@ -66,6 +62,11 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
             'created_by_name',
             'source',
             'created_at',
+            'contact',
+            'product',
+            'quantity',
+            'sale_source',
+            'sale_type',
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
     
@@ -95,6 +96,11 @@ class AcShowTransactionCreateSerializer(serializers.ModelSerializer):
             'source',
             'is_recurring',
             'recurrence_pattern',
+            'contact',
+            'product',
+            'quantity',
+            'sale_source',
+            'sale_type',
         ]
     
     def validate_amount(self, value):
@@ -284,7 +290,7 @@ class QuickRecordSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'entry_type', 'entry_type_display', 'amount', 'description',
             'transaction_category', 'tag', 'party_name', 'is_paid', 'due_date',
-            'created_by_name', 'time_ago', 'created_at',
+            'created_by_name', 'time_ago', 'created_at', 'contact', 'product', 'quantity', 'sale_source',
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
     
@@ -517,3 +523,23 @@ class AcShowDashboardSerializer(serializers.Serializer):
             forecast[str(date)] = {'expected_in': expected_in, 'expected_out': expected_out, 'net': expected_in - expected_out}
         return forecast
     
+class ContactSerializer(serializers.ModelSerializer):
+    """Simple contact serializer."""
+    id = serializers.UUIDField(read_only=True)
+    contact_type_display = serializers.CharField(source='get_contact_type_display', read_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    
+    class Meta:
+        model = Contact
+        fields = [
+            'id', 'contact_type', 'contact_type_display',
+            'company_name', 'proprietor_name', 'business_address',
+            'phone', 'email',
+            'total_due', 'total_payable', 'is_active',
+        ]
+        read_only_fields = ['id', 'total_due', 'total_payable']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        business = request.user.profile
+        return Contact.objects.create(business=business, **validated_data)

@@ -3,5 +3,8 @@
   "python.envFile": "${workspaceFolder}/.env",
   "python.analysis.extraPaths": [
     "${workspaceFolder}"
-  ]
+  ],
+  "search.useParentIgnoreFiles": false,
+  "search.useGlobalIgnoreFiles": false,
+  "search.useIgnoreFiles": false
 }

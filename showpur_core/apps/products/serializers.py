@@ -222,9 +222,12 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         # stock_quantity / reserved_* deliberately absent — signals own them
 
     def create(self, validated_data):
-        validated_data['owner'] = self.context['request'].user
+        # 🌟 Clean, safe extraction of the request context layer
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['owner'] = request.user
+            
         return super().create(validated_data)
-
 
 # ─────────────────────────────────────────
 # STOCK LEDGER — add stock (purchase / production)

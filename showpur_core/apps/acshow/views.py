@@ -516,4 +516,23 @@ class ContactViewSet(viewsets.ModelViewSet):
         if contact_type:
             queryset = queryset.filter(contact_type=contact_type)
         return queryset.order_by('company_name')
+
+class StartTrialView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        user.acshow_trial_start = timezone.now()
+        user.acshow_trial_end = timezone.now() + timedelta(days=14)
+        user.acshow_enabled = True
+        user.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Trial started! 14 days free.',
+            'trial_end': user.acshow_trial_end
+        })
     

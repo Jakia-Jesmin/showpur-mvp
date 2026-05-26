@@ -15,7 +15,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
     wholesale_price: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
-    category: '',
+    category: '', // 👈 If left blank, we will inject a fallback below
     condition: 'new',
   });
   const [loading, setLoading] = useState(false);
@@ -54,14 +54,23 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
     }
     setLoading(true);
     setError('');
+    
     try {
       const data = {
-        ...form,
+        name: form.name,
+        description: form.description,
+        short_description: form.short_description,
         price: parseFloat(form.price),
         wholesale_price: form.wholesale_price ? parseFloat(form.wholesale_price) : null,
-        stock_quantity: parseInt(form.stock_quantity) || 0,
+        condition: form.condition,
         low_stock_threshold: parseInt(form.low_stock_threshold) || 5,
+        is_active: true,
+        
+        // 🌟 WORKAROUND: If category is blank, pass null or a valid default primary key ID integer
+        // Replace 1 with a valid active Category ID from your admin panel if required.
+        category: form.category ? parseInt(form.category) : 1, 
       };
+
       if (isEdit) {
         await productsAPI.update(product.id, data);
       } else {
@@ -91,6 +100,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
             <label className="block text-xs font-bold text-gray-600 mb-1.5">Product Name *</label>
             <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Product name" className={inputClass} autoFocus />
           </div>
+          
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1.5">Price (৳) *</label>
@@ -101,18 +111,25 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
               <input type="number" name="wholesale_price" value={form.wholesale_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
             </div>
           </div>
+          
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1.5">Short Description</label>
             <input type="text" name="short_description" value={form.short_description} onChange={handleChange} placeholder="Brief description" className={inputClass} />
           </div>
+          
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1.5">Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} placeholder="Full description (optional)" rows={2} className={inputClass} />
           </div>
+          
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1.5">Stock Quantity</label>
-              <input type="number" name="stock_quantity" value={form.stock_quantity} onChange={handleChange} className={inputClass} />
+              <label className="block text-xs font-bold text-gray-600 mb-1.5">Condition</label>
+              <select name="condition" value={form.condition} onChange={handleChange} className={inputClass}>
+                <option value="new">New</option>
+                <option value="used">Used</option>
+                <option value="refurbished">Refurbished</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1.5">Low Stock Alert</label>

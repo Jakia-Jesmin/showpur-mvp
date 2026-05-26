@@ -33,19 +33,40 @@ from .serializers import (
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """Object-level: only the product owner can write."""
+    
+    def has_permission(self, request, view):
+        # Allow all authenticated users to list/create
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # Allow create for authenticated users with valid roles
+        if request.method == 'POST':
+            return request.user.is_authenticated
+        return True
+    
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
         owner = getattr(obj, 'owner', getattr(obj, 'seller', None))
         return owner == request.user
-
-
 class IsProductOwner(permissions.BasePermission):
     """Only allows access if request.user owns the product in context."""
-    def has_object_permission(self, request, view, obj):
-        product = getattr(obj, 'product', obj)
-        return product.owner == request.user
+    
+    def has_permission(self, request, view):
+        # 🌟 GLOBAL LAYER: Ensure the user is authenticated before checking object lookups
+        return request.user and request.user.is_authenticated
 
+    def has_object_permission(self, request, view, obj):
+        # 🌟 DETAIL LAYER: Safely check database record field properties
+        product = getattr(obj, 'product', obj)
+        
+        # Check if the product model connects via an '.owner' or '.business' reference link
+        owner = getattr(product, 'owner', getattr(product, 'business', None))
+        
+        # If it's a BusinessProfile model instance, look up its underlying owner account field user 
+        if hasattr(owner, 'user'):
+            return owner.user == request.user
+            
+        return owner == request.user
 
 class IsRequestShowroom(permissions.BasePermission):
     """Only allows access if request.user is the showroom on the DisplayRequest."""
@@ -102,6 +123,11 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        # 🌟 FIX: If we are creating or updating, return the base model manager 
+        # so DRF's validation engine has an open field structure to check against.
+        if self.action in ('create', 'update', 'partial_update'):
+            return Product.objects.all()
+        
         # Owner viewing their own products — show everything including drafts
         if self.action in ('my_products', 'inventory'):
             return annotate_products(

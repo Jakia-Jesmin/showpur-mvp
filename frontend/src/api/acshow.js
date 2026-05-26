@@ -58,4 +58,7 @@ export const acshowAPI = {
 
   // Products
   getProducts: () => apiClient.get('/products/'),
+
+  // Trial
+  startTrial: () => apiClient.post('/acshow/start-trial/'),
 };

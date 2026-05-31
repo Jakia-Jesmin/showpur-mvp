@@ -7,7 +7,6 @@ from django.db.models import Sum
 
 User = settings.AUTH_USER_MODEL
 
-
 # ─────────────────────────────────────────
 # CATEGORY
 # ─────────────────────────────────────────

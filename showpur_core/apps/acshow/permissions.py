@@ -27,4 +27,19 @@ class HasAcShowAccess(BasePermission):
                 return True
         
         return False
+
+class IsMaker(BasePermission):
+    """Can create and edit transactions"""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.staff_role in ['maker', 'both', 'admin']
+
+class IsChecker(BasePermission):
+    """Can approve/reject transactions — but not their own"""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.staff_role in ['checker', 'both', 'admin']
+
+class CanApproveTransaction(BasePermission):
+    """Checker cannot approve their own entries"""
+    def has_object_permission(self, request, view, obj):
+        return obj.created_by != request.user
     

@@ -16,7 +16,8 @@ from .models import (
 class AcShowTransactionAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'business', 'transaction_type_badge', 'amount_display',
-        'party_name', 'status_badge', 'transaction_date', 'due_date'
+        'party_name', 'status_badge', 'transaction_date', 'due_date',
+        'approval_status_badge', 'created_by', 'approved_by'
     ]
     list_filter = [
         'transaction_type', 'status', 'transaction_category', 'party_type',
@@ -87,7 +88,15 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
         )
     status_badge.short_description = 'Status'
 
-
+    def approval_status_badge(self, obj):
+        colors = {
+            'pending': 'orange',
+            'approved': 'green',
+            'rejected': 'red',
+            'pending_edit': 'purple',
+        }
+        return format_html('<span style="background-color:{};color:white;padding:2px 8px;border-radius:10px;font-size:12px">{}</span>',
+            colors.get(obj.status, 'gray'), obj.get_status_display())
 @admin.register(AcShowCashPosition)
 class AcShowCashPositionAdmin(admin.ModelAdmin):
     list_display = [

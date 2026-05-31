@@ -10,10 +10,10 @@ export const useAcShowDashboard = () => {
     try {
       setLoading(true);
       const response = await acshowAPI.getDashboard();
-      setData(response.data.data);
+      setData(response.data || response);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load dashboard');
+      setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
@@ -26,11 +26,11 @@ export const useAcShowDashboard = () => {
         setLoading(true);
         const response = await acshowAPI.getDashboard();
         if (!isMounted) return;
-        setData(response.data.data);
+        setData(response.data || response);
         setError(null);
       } catch (err) {
         if (!isMounted) return;
-        setError(err.response?.data?.message || 'Failed to load dashboard');
+        setError(err.message || 'Failed to load dashboard');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -103,13 +103,14 @@ export const useAlerts = () => {
 
 export const useAcShowAccess = () => {
   const [hasAccess, setHasAccess] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
+    // A lightweight check: hit the dashboard endpoint and treat any 200 as access granted.
+    // 403 means no trial / subscription active.
     acshowAPI.getDashboard()
-      .then(() => setHasAccess(true))
-      .catch(() => setHasAccess(false))
-      .finally(() => setLoading(false));
+      .then(() => { setHasAccess(true);  setLoading(false); })
+      .catch(() => { setHasAccess(false); setLoading(false); });
   }, []);
 
   return { hasAccess, loading };

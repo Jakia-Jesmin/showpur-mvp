@@ -1,6 +1,4 @@
-# apps/acshow/models.py
-
-from django.db import connections, models
+from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.core.validators import MinValueValidator
@@ -8,103 +6,89 @@ import uuid
 from decimal import Decimal
 from apps.connections.models import Contact
 
-# ============================================
+
+# ============================================================
 # SHARED CHOICES
-# ============================================
+# ============================================================
 
 SALE_SOURCE_CHOICES = [
-    ('pos', '🏪 Own Shop'),
-    ('showroom', '🏬 Showroom'),
-    ('online', '📱 Online'),
-    ('direct', '👤 Direct'),
-    ('consignment', '🤝 Consignment'),
-    ('manual', '📋 Manual'),
+    ('pos', 'Own Shop'),
+    ('showroom', 'Showroom'),
+    ('online', 'Online'),
+    ('direct', 'Direct'),
+    ('consignment', 'Consignment'),
+    ('manual', 'Manual'),
 ]
 
-SALE_TYPE_CHOICES = [
-    ('own', 'Own Product'),
-    ('commission', 'Commission/Consignment'),
-]
 
-# ============================================
+# ============================================================
 # TRANSACTION CATEGORY (Chart of Accounts)
-# ============================================
+# ============================================================
 
 class TransactionCategory(models.Model):
     CATEGORY_TYPES = [
-        ('income', '📥 Money In'),
-        ('expense', '📤 Money Out'),
+        ('income', 'Money In'),
+        ('expense', 'Money Out'),
     ]
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_categories')
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_categories'
+    )
     name = models.CharField(max_length=100)
-    name_bn = models.CharField(max_length=100, blank=True, help_text="Bengali name")
+    name_bn = models.CharField(max_length=100, blank=True)
     category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)
     icon = models.CharField(max_length=10, blank=True)
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'acshow_categories'
         ordering = ['order', 'name']
         unique_together = ['business', 'name']
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
-    
+
     def __str__(self):
         return f"{self.icon} {self.name}"
 
-# ============================================
-# CONTACT (Customers & Suppliers)
-# ============================================
 
-class Contact(models.Model):
-    CONTACT_TYPES = [
-        ('customer', '👤 Customer'),
-        ('supplier', '🏭 Supplier'),
-        ('agent', '🤝 Agent'),
-    ]
-    
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_contacts')
-    contact_type = models.CharField(max_length=20, choices=CONTACT_TYPES)
-    name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20, blank=True)
-    address = models.TextField(blank=True)
-    notes = models.TextField(blank=True)
-    total_due = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    total_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'acshow_contacts'
-        ordering = ['name']
-        unique_together = ['business', 'name', 'contact_type']
-    
-    def __str__(self):
-        return f"{self.get_contact_type_display()} {self.name}"
-
-# ============================================
+# ============================================================
 # CORE TRANSACTION
-# ============================================
+# ============================================================
 
 class AcShowTransaction(models.Model):
+
     TRANSACTION_TYPES = [
-        ('income', '💰 Income'),
-        ('expense', '💸 Expense'),
-        ('receivable', '📥 Money to Collect'),
-        ('payable', '📤 Money to Pay'),
+        ('income', 'Income'),           # general money in (non-product)
+        ('expense', 'Expense'),         # general money out (non-product)
+        ('sale', 'Sale'),               # product sold to customer
+        ('purchase', 'Purchase'),       # product bought from supplier
+        ('receivable', 'Receivable'),   # standalone: money to collect
+        ('payable', 'Payable'),         # standalone: money to pay
     ]
-    
+
+    # income / sale / receivable → increase AR or cash
+    INCOME_TYPES = ('income', 'sale', 'receivable')
+    # expense / purchase / payable → decrease cash or increase AP
+    EXPENSE_TYPES = ('expense', 'purchase', 'payable')
+
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-        ('overdue', '⚠️ Overdue'),
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('pending_edit', 'Edit Pending Approval'),
     ]
-    
+
+    PAYMENT_METHOD_CHOICES = [
+        ('cash_hand', 'Cash in Hand'),
+        ('cash_bank', 'Cash at Bank'),
+        ('mixed', 'Cash Hand + Bank'),
+        ('credit', 'Full Credit'),
+        ('partial', 'Partial (Cash + Credit)'),
+    ]
+
     SOURCE_CHOICES = [
         ('pos', 'POS Terminal'),
         ('manual', 'Manual Entry'),
@@ -112,59 +96,103 @@ class AcShowTransaction(models.Model):
         ('showpur', 'Showpur Order'),
         ('bulk', 'Bulk Import'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_transactions')
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='acshow_transactions')
-    
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_transactions'
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='acshow_transactions'
+    )
+
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
-    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
-    description = models.TextField(help_text="What was this transaction for?")
-    transaction_category = models.ForeignKey(TransactionCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
-    
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    description = models.TextField()
+    transaction_category = models.ForeignKey(
+        TransactionCategory, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='transactions'
+    )
+
+    # Payment split — how the amount was settled
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash_hand'
+    )
+    cash_hand_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cash_bank_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    credit_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Portion on credit — creates AR (for sales) or AP (for purchases)"
+    )
+
+    # Legacy payment tracking (kept for compatibility)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
     # Contact
-    contact = models.ForeignKey('connections.Contact', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', help_text="Linked customer or supplier")
-    
-    # Party
+    contact = models.ForeignKey(
+        'connections.Contact', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='transactions'
+    )
     party_name = models.CharField(max_length=255, blank=True)
     party_phone = models.CharField(max_length=20, blank=True)
     party_type = models.CharField(max_length=20, choices=[
-        ('producer', 'Producer'), ('showroom', 'Showroom'), ('customer', 'Customer'),
-        ('supplier', 'Supplier'), ('employee', 'Employee'), ('other', 'Other'),
+        ('producer', 'Producer'), ('showroom', 'Showroom'),
+        ('customer', 'Customer'), ('supplier', 'Supplier'),
+        ('employee', 'Employee'), ('other', 'Other'),
     ], default='other')
-    
+
     # Product
-    product = models.ForeignKey('products.Product', on_delete=models.SET_NULL, null=True, blank=True, related_name='acshow_transactions')
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1, validators=[MinValueValidator(Decimal('0.01'))])
-    linked_producer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='acshow_transactions_as_party')
-    
-    # Sale context
+    product = models.ForeignKey(
+        'products.Product', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='acshow_transactions'
+    )
+    quantity = models.DecimalField(
+        max_digits=10, decimal_places=2, default=1,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default='manual')
-    sale_type = models.CharField(max_length=20, choices=SALE_TYPE_CHOICES, default='own')
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual')
-    
+
     # Dates
     transaction_date = models.DateField(default=timezone.now)
     due_date = models.DateField(null=True, blank=True)
-    completed_date = models.DateTimeField(null=True, blank=True)
-    
-    # Status & Payment
+
+    # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    
+
+    # Maker-checker audit trail
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='approved_transactions'
+    )
+    rejected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='rejected_transactions'
+    )
+    rejection_reason = models.TextField(blank=True)
+    edited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='edited_transactions'
+    )
+
     # Recurring
     is_recurring = models.BooleanField(default=False)
     recurrence_pattern = models.CharField(max_length=50, blank=True, choices=[
-        ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly'),
+        ('daily', 'Daily'), ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'), ('yearly', 'Yearly'),
     ])
     next_recurrence_date = models.DateField(null=True, blank=True)
-    
+
     notes = models.TextField(blank=True)
     receipt_image = models.ImageField(upload_to='acshow/receipts/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'acshow_transactions'
         ordering = ['-transaction_date', '-created_at']
@@ -174,40 +202,74 @@ class AcShowTransaction(models.Model):
             models.Index(fields=['business', 'transaction_type', 'status']),
             models.Index(fields=['business', 'transaction_date']),
             models.Index(fields=['due_date', 'status']),
-            models.Index(fields=['party_type', 'party_name']),
             models.Index(fields=['transaction_category']),
         ]
-    
+
     def __str__(self):
-        return f"{self.get_transaction_type_display()}: ৳{self.amount} - {self.party_name or 'N/A'}"
-    
+        return f"{self.get_transaction_type_display()}: {self.amount} - {self.party_name or 'N/A'}"
+
     def save(self, *args, **kwargs):
-        if self.paid_amount and self.amount:
-            self.remaining_amount = self.amount - self.paid_amount
-        if self.remaining_amount == 0 and self.status == 'pending':
-            self.status = 'completed'
-            self.completed_date = timezone.now()
-        if self.due_date and self.due_date < timezone.now().date() and self.status == 'pending':
-            self.status = 'overdue'
+        # Recompute payment split totals
+        cash_total = (self.cash_hand_amount or 0) + (self.cash_bank_amount or 0)
+        self.paid_amount = cash_total
+        self.credit_amount = max(self.amount - cash_total, Decimal('0'))
+        self.remaining_amount = self.credit_amount
+
+        # Derive payment_method label
+        has_hand = (self.cash_hand_amount or 0) > 0
+        has_bank = (self.cash_bank_amount or 0) > 0
+        has_credit = self.credit_amount > 0
+        if not has_credit:
+            if has_hand and has_bank:
+                self.payment_method = 'mixed'
+            elif has_bank:
+                self.payment_method = 'cash_bank'
+            else:
+                self.payment_method = 'cash_hand'
+        elif not has_hand and not has_bank:
+            self.payment_method = 'credit'
+        else:
+            self.payment_method = 'partial'
+
         super().save(*args, **kwargs)
-    
+
+    # ── Computed properties ───────────────────────────────────
+
     @property
     def is_overdue(self):
-        return self.status == 'overdue'
-    
+        if not self.due_date:
+            return False
+        return (
+            self.status in ('pending',) and
+            self.remaining_amount > 0 and
+            self.due_date < timezone.now().date()
+        )
+
     @property
     def days_overdue(self):
-        if self.due_date and self.status in ['pending', 'overdue']:
-            return max(0, (timezone.now().date() - self.due_date).days)
+        if self.is_overdue:
+            return (timezone.now().date() - self.due_date).days
         return 0
 
-# ============================================
-# CASH POSITION
-# ============================================
+    @property
+    def is_income_type(self):
+        return self.transaction_type in self.INCOME_TYPES
+
+    @property
+    def is_expense_type(self):
+        return self.transaction_type in self.EXPENSE_TYPES
+
+
+# ============================================================
+# CASH POSITION  (daily snapshot)
+# ============================================================
 
 class AcShowCashPosition(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_cash_positions')
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_cash_positions'
+    )
     date = models.DateField()
     opening_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_cash_in = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -222,64 +284,89 @@ class AcShowCashPosition(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'acshow_cash_positions'
         unique_together = ['business', 'date']
         ordering = ['-date']
         verbose_name = 'Cash Position'
         verbose_name_plural = 'Cash Positions'
-    
+
     def __str__(self):
-        return f"Cash Position {self.date}: ৳{self.closing_balance}"
-    
+        return f"Cash Position {self.date}: {self.closing_balance}"
+
     def calculate_closing(self):
         self.closing_balance = self.opening_balance + self.total_cash_in - self.total_cash_out
+        self.has_shortfall = self.closing_balance < 0
+        self.shortfall_amount = abs(self.closing_balance) if self.has_shortfall else 0
         return self.closing_balance
-    
+
     @property
     def net_cash_flow(self):
         return self.total_cash_in - self.total_cash_out
-    
+
     @property
     def cash_position_status(self):
-        if self.has_shortfall: return 'danger'
-        elif self.closing_balance < 10000: return 'warning'
+        if self.has_shortfall:
+            return 'danger'
+        elif self.closing_balance < 10000:
+            return 'warning'
         return 'healthy'
 
-# ============================================
-# QUICK RECORD
-# ============================================
+
+# ============================================================
+# QUICK RECORD  (fast daily entry — auto-creates a transaction)
+# ============================================================
 
 class QuickRecord(models.Model):
     ENTRY_TYPES = [
-        ('collection', '💰 Collected Money'),
-        ('payment', '💸 Made Payment'),
-        ('sale', '🛒 Recorded Sale'),
-        ('purchase', '📦 Made Purchase'),
-        ('expense', '🧾 Paid Expense'),
+        ('collection', 'Collected Money'),
+        ('payment', 'Made Payment'),
+        ('sale', 'Recorded Sale'),
+        ('purchase', 'Made Purchase'),
+        ('expense', 'Paid Expense'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_quick_records')
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='acshow_quick_records')
-    
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_quick_records'
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='acshow_quick_records'
+    )
+
     entry_type = models.CharField(max_length=20, choices=ENTRY_TYPES)
-    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
-    description = models.TextField(help_text="What's this for?")
-    
-    contact = models.ForeignKey('connections.Contact', on_delete=models.SET_NULL, null=True, blank=True, help_text="Linked customer or supplier")
-    product = models.ForeignKey('products.Product', on_delete=models.SET_NULL, null=True, blank=True, related_name='acshow_quick_records')
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    description = models.TextField()
+
+    contact = models.ForeignKey(
+        'connections.Contact', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    product = models.ForeignKey(
+        'products.Product', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='acshow_quick_records'
+    )
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default='manual')
-    transaction_category = models.ForeignKey(TransactionCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    tag = models.CharField(max_length=50, blank=True)
-    party_name = models.CharField(max_length=255, blank=True)
+    transaction_category = models.ForeignKey(
+        TransactionCategory, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    # Payment details
+    cash_hand_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cash_bank_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=True)
     due_date = models.DateField(null=True, blank=True)
+    party_name = models.CharField(max_length=255, blank=True)
+    tag = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'acshow_quick_records'
         ordering = ['-created_at']
@@ -289,19 +376,28 @@ class QuickRecord(models.Model):
             models.Index(fields=['business', 'entry_type']),
             models.Index(fields=['business', 'created_at']),
         ]
-    
+
     def __str__(self):
-        return f"{self.get_entry_type_display()}: ৳{self.amount}"
-    
+        return f"{self.get_entry_type_display()}: {self.amount}"
+
+    def _map_transaction_type(self):
+        mapping = {
+            'collection': 'income',
+            'sale': 'sale',
+            'purchase': 'purchase',
+            'payment': 'expense',
+            'expense': 'expense',
+        }
+        return mapping.get(self.entry_type, 'income')
+
     def create_transaction(self):
-        transaction_type = 'receivable' if (self.entry_type == 'sale' and not self.is_paid) else \
-                          'payable' if (self.entry_type == 'purchase' and not self.is_paid) else \
-                          'income' if self.entry_type in ['collection', 'sale'] else 'expense'
-        
+        creator = self.created_by
+        auto_approve = creator.can_self_approve if hasattr(creator, 'can_self_approve') else False
+
         return AcShowTransaction.objects.create(
             business=self.business,
-            created_by=self.created_by,
-            transaction_type=transaction_type,
+            created_by=creator,
+            transaction_type=self._map_transaction_type(),
             amount=self.amount,
             description=self.description,
             transaction_category=self.transaction_category,
@@ -309,26 +405,35 @@ class QuickRecord(models.Model):
             product=self.product,
             quantity=self.quantity,
             sale_source=self.sale_source,
+            cash_hand_amount=self.cash_hand_amount,
+            cash_bank_amount=self.cash_bank_amount,
             party_name=self.party_name,
             due_date=self.due_date,
             source='quick',
-            status='completed' if self.is_paid else 'pending'
+            status='approved' if auto_approve else 'pending',
         )
 
-# ============================================
+
+# ============================================================
 # ALERT
-# ============================================
+# ============================================================
 
 class AcShowAlert(models.Model):
     ALERT_TYPES = [
-        ('payment_due', 'Payment Due'), ('collection_due', 'Collection Due'),
-        ('low_cash', 'Low Cash Warning'), ('low_stock', 'Low Stock Alert'),
-        ('overdue', 'Overdue Payment'), ('milestone', 'Business Milestone'),
+        ('payment_due', 'Payment Due'),
+        ('collection_due', 'Collection Due'),
+        ('low_cash', 'Low Cash Warning'),
+        ('low_stock', 'Low Stock Alert'),
+        ('overdue', 'Overdue Payment'),
+        ('milestone', 'Business Milestone'),
     ]
-    PRIORITY_CHOICES = [('high', '🔴 High'), ('medium', '🟡 Medium'), ('low', '🟢 Low')]
-    
+    PRIORITY_CHOICES = [('high', 'High'), ('medium', 'Medium'), ('low', 'Low')]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.ForeignKey('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_alerts')
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_alerts'
+    )
     alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     title = models.CharField(max_length=255)
@@ -337,27 +442,36 @@ class AcShowAlert(models.Model):
     action_label = models.CharField(max_length=100, blank=True)
     is_read = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
-    related_transaction = models.ForeignKey(AcShowTransaction, on_delete=models.CASCADE, null=True, blank=True, related_name='alerts')
+    related_transaction = models.ForeignKey(
+        AcShowTransaction, on_delete=models.CASCADE,
+        null=True, blank=True, related_name='alerts'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'acshow_alerts'
         ordering = ['-created_at']
-        verbose_name = 'Alert'
-        verbose_name_plural = 'Alerts'
-    
+
     def __str__(self):
         return f"{self.get_alert_type_display()}: {self.title}"
 
-# ============================================
-# BUSINESS HEALTH
-# ============================================
+
+# ============================================================
+# BUSINESS HEALTH  (computed score — updated periodically)
+# ============================================================
 
 class BusinessHealth(models.Model):
-    HEALTH_STATUS = [('healthy', '✅ Healthy'), ('caution', '⚠️ Needs Attention'), ('critical', '🚨 Critical')]
-    
+    HEALTH_STATUS = [
+        ('healthy', 'Healthy'),
+        ('caution', 'Needs Attention'),
+        ('critical', 'Critical'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    business = models.OneToOneField('accounts.BusinessProfile', on_delete=models.CASCADE, related_name='acshow_health')
+    business = models.OneToOneField(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='acshow_health'
+    )
     health_status = models.CharField(max_length=20, choices=HEALTH_STATUS, default='healthy')
     health_score = models.IntegerField(default=100)
     monthly_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -369,25 +483,32 @@ class BusinessHealth(models.Model):
     stock_pressure = models.IntegerField(default=0)
     last_calculated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'acshow_health'
         verbose_name = 'Business Health'
-        verbose_name_plural = 'Business Health'
-    
+
     def __str__(self):
-        return f"{self.business.business_name} - {self.get_health_status_display()}"
-    
+        return f"{self.business.business_name} — {self.get_health_status_display()}"
+
     def calculate_health_score(self):
         score = 100
-        if self.collection_rate < 70: score -= 20
-        elif self.collection_rate < 85: score -= 10
-        if self.cash_buffer_days < 7: score -= 15
-        elif self.cash_buffer_days < 14: score -= 5
+        if self.collection_rate < 70:
+            score -= 20
+        elif self.collection_rate < 85:
+            score -= 10
+        if self.cash_buffer_days < 7:
+            score -= 15
+        elif self.cash_buffer_days < 14:
+            score -= 5
         score -= min(30, self.due_pressure * 3)
         score -= min(20, self.payment_pressure * 2)
         score -= min(10, self.stock_pressure * 2)
         self.health_score = max(0, min(100, score))
-        self.health_status = 'healthy' if self.health_score >= 80 else 'caution' if self.health_score >= 50 else 'critical'
+        self.health_status = (
+            'healthy' if self.health_score >= 80 else
+            'caution' if self.health_score >= 50 else
+            'critical'
+        )
         self.save()
         return self.health_score

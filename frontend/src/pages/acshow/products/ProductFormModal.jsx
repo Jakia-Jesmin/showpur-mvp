@@ -18,6 +18,13 @@ const CONDITION_CHOICES = [
   { value: 'fair', label: 'Fair' },
 ];
 
+const SectionHeader = ({ title, icon, section, sections, onToggle }) => (
+  <div onClick={() => onToggle(section)} className="flex items-center justify-between cursor-pointer py-2">
+    <span className="text-sm font-bold text-gray-700">{icon} {title}</span>
+    {sections[section] ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+  </div>
+);
+
 const EMPTY_FORM = {
   name: '', description: '', short_description: '',
   price: '', wholesale_price: '', minimum_order_quantity: '1',
@@ -143,14 +150,6 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
 
   const inputClass = "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all";
   const labelClass = "block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1";
-  const sectionClass = "flex items-center justify-between cursor-pointer py-2";
-
-  const SectionHeader = ({ title, icon, section }) => (
-    <div onClick={() => toggleSection(section)} className={sectionClass}>
-      <span className="text-sm font-bold text-gray-700">{icon} {title}</span>
-      {sections[section] ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -164,7 +163,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
         <form onSubmit={handleSubmit} className="p-5 space-y-2">
 
           {/* Basic Info */}
-          <SectionHeader title="Basic Information" icon="📋" section="basic" />
+          <SectionHeader title="Basic Information" icon="📋" section="basic" sections={sections} onToggle={toggleSection} />
           {sections.basic && (
             <div className="space-y-3 pb-4 border-b border-gray-100">
               <div>
@@ -196,7 +195,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Pricing */}
-          <SectionHeader title="Pricing" icon="💰" section="pricing" />
+          <SectionHeader title="Pricing" icon="💰" section="pricing" sections={sections} onToggle={toggleSection} />
           {sections.pricing && (
             <div className="grid grid-cols-2 gap-3 pb-4 border-b border-gray-100">
               <div>
@@ -211,7 +210,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Inventory */}
-          <SectionHeader title="Inventory & Stock" icon="📦" section="inventory" />
+          <SectionHeader title="Inventory & Stock" icon="📦" section="inventory" sections={sections} onToggle={toggleSection} />
           {sections.inventory && (
             <div className="space-y-3 pb-4 border-b border-gray-100">
               <div className="grid grid-cols-3 gap-3">
@@ -236,7 +235,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Product Details */}
-          <SectionHeader title="Product Details" icon="🔧" section="details" />
+          <SectionHeader title="Product Details" icon="🔧" section="details" sections={sections} onToggle={toggleSection} />
           {sections.details && (
             <div className="space-y-3 pb-4 border-b border-gray-100">
               <div className="grid grid-cols-2 gap-3">
@@ -273,7 +272,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Media */}
-          <SectionHeader title="Media" icon="🖼️" section="media" />
+          <SectionHeader title="Media" icon="🖼️" section="media" sections={sections} onToggle={toggleSection} />
           {sections.media && (
             <div className="space-y-3 pb-4 border-b border-gray-100">
               <div>
@@ -292,7 +291,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Commission */}
-          <SectionHeader title="Display & Commission" icon="🤝" section="commission" />
+          <SectionHeader title="Display & Commission" icon="🤝" section="commission" sections={sections} onToggle={toggleSection} />
           {sections.commission && (
             <div className="grid grid-cols-2 gap-3 pb-4 border-b border-gray-100">
               <div>
@@ -307,7 +306,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* Status */}
-          <SectionHeader title="Status" icon="✅" section="status" />
+          <SectionHeader title="Status" icon="✅" section="status" sections={sections} onToggle={toggleSection} />
           {sections.status && (
             <div className="flex flex-wrap gap-4 pb-4 border-b border-gray-100">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -326,7 +325,7 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
           )}
 
           {/* SEO */}
-          <SectionHeader title="SEO Metadata" icon="🔍" section="seo" />
+          <SectionHeader title="SEO Metadata" icon="🔍" section="seo" sections={sections} onToggle={toggleSection} />
           {sections.seo && (
             <div className="space-y-3 pb-4">
               <div>

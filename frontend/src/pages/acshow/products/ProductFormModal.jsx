@@ -18,8 +18,52 @@ const CONDITION_CHOICES = [
   { value: 'fair', label: 'Fair' },
 ];
 
+const EMPTY_FORM = {
+  name: '', description: '', short_description: '',
+  price: '', wholesale_price: '', minimum_order_quantity: '1',
+  category: '', main_image: '', images: '[]', video_url: '',
+  dimensions: '', weight: '', color: '', material: '',
+  stock_quantity: '0', reserved_showroom: '0', reserved_dropship: '0',
+  low_stock_threshold: '5', fulfillment_type: 'physical', condition: 'new',
+  is_active: true, is_featured: false, is_approved: false,
+  preferred_display_fee: '', min_commission_rate: '',
+  meta_title: '', meta_description: '', meta_keywords: '',
+};
+
+const productToForm = (p) => ({
+  name:                  p.name || '',
+  description:           p.description || '',
+  short_description:     p.short_description || '',
+  price:                 p.price || '',
+  wholesale_price:       p.wholesale_price || '',
+  minimum_order_quantity: p.minimum_order_quantity || '1',
+  category:              p.category?.id || p.category || '',
+  main_image:            p.main_image || '',
+  images:                p.images || '[]',
+  video_url:             p.video_url || '',
+  dimensions:            p.dimensions || '',
+  weight:                p.weight || '',
+  color:                 p.color || '',
+  material:              p.material || '',
+  stock_quantity:        p.stock_quantity || '0',
+  reserved_showroom:     p.reserved_showroom || '0',
+  reserved_dropship:     p.reserved_dropship || '0',
+  low_stock_threshold:   p.low_stock_threshold || '5',
+  fulfillment_type:      p.fulfillment_type || 'physical',
+  condition:             p.condition || 'new',
+  is_active:             p.is_active !== false,
+  is_featured:           p.is_featured || false,
+  is_approved:           p.is_approved || false,
+  preferred_display_fee: p.preferred_display_fee || '',
+  min_commission_rate:   p.min_commission_rate || '',
+  meta_title:            p.meta_title || '',
+  meta_description:      p.meta_description || '',
+  meta_keywords:         p.meta_keywords || '',
+});
+
 const ProductFormModal = ({ product, onClose, onSuccess }) => {
   const isEdit = !!product;
+  const [form, setForm] = useState(product ? productToForm(product) : EMPTY_FORM);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,43 +72,11 @@ const ProductFormModal = ({ product, onClose, onSuccess }) => {
     media: false, commission: false, seo: false, status: false,
   });
 
-  // Fetch categories from backend
   useEffect(() => {
     apiClient.get('/products/categories/')
       .then(res => setCategories(res.results || res))
       .catch(console.error);
   }, []);
-
-    const form = product ? {
-    name: product.name || '',
-    description: product.description || '',
-    short_description: product.short_description || '',
-    price: product.price || '',
-    wholesale_price: product.wholesale_price || '',
-    minimum_order_quantity: product.minimum_order_quantity || '1',
-    category: product.category?.id || product.category || '',
-    main_image: product.main_image || '',
-    images: product.images || '[]',
-    video_url: product.video_url || '',
-    dimensions: product.dimensions || '',
-    weight: product.weight || '',
-    color: product.color || '',
-    material: product.material || '',
-    stock_quantity: product.stock_quantity || '0',
-    reserved_showroom: product.reserved_showroom || '0',
-    reserved_dropship: product.reserved_dropship || '0',
-    low_stock_threshold: product.low_stock_threshold || '5',
-    fulfillment_type: product.fulfillment_type || 'physical',
-    condition: product.condition || 'new',
-    is_active: product.is_active !== false,
-    is_featured: product.is_featured || false,
-    is_approved: product.is_approved || false,
-    preferred_display_fee: product.preferred_display_fee || '',
-    min_commission_rate: product.min_commission_rate || '',
-    meta_title: product.meta_title || '',
-    meta_description: product.meta_description || '',
-    meta_keywords: product.meta_keywords || '',
-  } : {}; // Consider using a more specific dependency if product object changes too often
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

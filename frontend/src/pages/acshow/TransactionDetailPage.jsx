@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { acshowAPI } from '@/api/acshow';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/ui/Spinner';
+import { Edit2 } from 'lucide-react';
 
 const fmt = (n) => parseFloat(n || 0).toLocaleString('en-IN');
 
@@ -43,6 +44,8 @@ const TransactionDetailPage = () => {
   const [showReject,       setShowReject]       = useState(false);
   const [rejectionReason,  setRejectionReason]  = useState('');
   const [actionError,      setActionError]      = useState('');
+  const [showEdit,         setShowEdit]         = useState(false);
+  const [editData,         setEditData]         = useState({});
 
   const fetchTransaction = async () => {
     try {
@@ -90,6 +93,28 @@ const TransactionDetailPage = () => {
     });
   };
   const handleMarkComplete = () => withAction(() => acshowAPI.updateTransactionStatus(id, 'complete'));
+
+  const openEdit = () => {
+    const tx = transaction;
+    setEditData({
+      description:       tx.description || '',
+      notes:             tx.notes || '',
+      amount:            tx.amount || '',
+      cash_hand_amount:  tx.cash_hand_amount || '',
+      cash_bank_amount:  tx.cash_bank_amount || '',
+      due_date:          tx.due_date || '',
+      transaction_date:  tx.transaction_date || '',
+    });
+    setShowEdit(true);
+  };
+
+  const handleEditSubmit = () => {
+    if (!editData.description?.trim()) { setActionError('Description is required.'); return; }
+    withAction(async () => {
+      await acshowAPI.submitEdit(id, editData);
+      setShowEdit(false);
+    });
+  };
 
   if (loading) return <div className="flex justify-center py-12"><Spinner /></div>;
   if (!transaction) return (
@@ -177,7 +202,7 @@ const TransactionDetailPage = () => {
               highlight={t.is_overdue}
             />
           )}
-          {t.product && <DetailRow label="Product" value={`${t.product} × ${t.quantity}`} />}
+          {t.product && <DetailRow label="Product" value={`${t.product_name || t.product} × ${t.quantity}`} />}
           {t.notes && <DetailRow label="Notes" value={t.notes} />}
         </div>
 
@@ -292,8 +317,71 @@ const TransactionDetailPage = () => {
             </div>
           )}
 
+          {/* Maker: Edit approved transaction */}
+          {canEdit && !showEdit && (
+            <button onClick={openEdit}
+              className="w-full border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center gap-2">
+              <Edit2 size={15} /> Edit Transaction
+            </button>
+          )}
+
+          {canEdit && showEdit && (
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700">Edit Transaction</h4>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Description *</label>
+                <input type="text" value={editData.description}
+                  onChange={e => setEditData(d => ({ ...d, description: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Cash in Hand (৳)</label>
+                  <input type="number" value={editData.cash_hand_amount}
+                    onChange={e => setEditData(d => ({ ...d, cash_hand_amount: e.target.value }))}
+                    placeholder="0.00" min="0" step="0.01"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Cash at Bank (৳)</label>
+                  <input type="number" value={editData.cash_bank_amount}
+                    onChange={e => setEditData(d => ({ ...d, cash_bank_amount: e.target.value }))}
+                    placeholder="0.00" min="0" step="0.01"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
+                <input type="date" value={editData.due_date}
+                  onChange={e => setEditData(d => ({ ...d, due_date: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                <textarea value={editData.notes} rows={2}
+                  onChange={e => setEditData(d => ({ ...d, notes: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={handleEditSubmit} disabled={actionLoading}
+                  className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+                  Submit for Approval
+                </button>
+                <button onClick={() => setShowEdit(false)}
+                  className="px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 text-sm">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Nothing to act on */}
-          {!canApprove && !hasOutstanding && (
+          {!canApprove && !hasOutstanding && !canEdit && (
             <p className="text-sm text-gray-400 text-center py-2">No actions available</p>
           )}
 

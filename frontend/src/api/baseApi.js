@@ -103,10 +103,59 @@ const baseApi = {
     return response.json();
   },
 
+  patch: async (endpoint, data) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const message = await extractErrorMessage(response);
+      throw new Error(message);
+    }
+    return response.json();
+  },
+
   delete: async (endpoint) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const message = await extractErrorMessage(response);
+      throw new Error(message);
+    }
+    return response.json();
+  },
+
+  postFormData: async (endpoint, formData) => {
+    const token = getToken();
+    const headers = {};
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const message = await extractErrorMessage(response);
+      throw new Error(message);
+    }
+    return response.json();
+  },
+
+  patchFormData: async (endpoint, formData) => {
+    const token = getToken();
+    const headers = {};
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers,
+      body: formData,
     });
     if (!response.ok) {
       const message = await extractErrorMessage(response);

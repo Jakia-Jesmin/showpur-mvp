@@ -4,8 +4,10 @@ import { acshowAPI } from '@/api/acshow';
 import TransactionItem from '@/components/acshow/TransactionItem';
 import QuickRecordModal from '@/pages/acshow/QuickRecordModal';
 import Spinner from '@/components/ui/Spinner';
-import { Search, Filter, X, Plus, TrendingUp, TrendingDown, Wallet, ShoppingBag } from 'lucide-react';
+import { Search, Filter, X, Plus, TrendingUp, TrendingDown, Wallet, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import EmptyState from '@/components/acshow/EmptyState';
+
+const PAGE_SIZE = 20;
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS  — aligned with the new backend API
@@ -66,7 +68,10 @@ const TransactionsPage = () => {
   const [summary, setSummary]           = useState(null);
   const [showFilters, setShowFilters]   = useState(false);
   const [showQuickRecord, setShowQuickRecord] = useState(false);
+  const [quickRecordType, setQuickRecordType] = useState(null);
   const [activeChip, setActiveChip]     = useState('all');
+  const [page, setPage]                 = useState(1);
+  const [totalCount, setTotalCount]     = useState(0);
 
   const [filters, setFilters] = useState({
     type:       searchParams.get('type')       || '',
@@ -80,32 +85,42 @@ const TransactionsPage = () => {
     overdue:          searchParams.get('overdue')          || '',
   });
 
+  // Auto-open modal when ?openType= is in URL (e.g. from dashboard quick actions)
+  useEffect(() => {
+    const openType = searchParams.get('openType');
+    if (openType) {
+      setQuickRecordType(openType);
+      setShowQuickRecord(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      // Strip empty params before sending
       const params = Object.fromEntries(
         Object.entries(filters).filter(([, v]) => v !== '')
       );
+      params.page = page;
 
       const [transRes, summaryRes] = await Promise.all([
         acshowAPI.getTransactions(params),
         acshowAPI.getTransactionSummary(),
       ]);
 
-      // baseApi returns JSON directly (not axios { data })
-      const transData   = transRes.results   || transRes;
-      const summaryData = summaryRes;
-
+      const transData = transRes.results || transRes;
       setTransactions(Array.isArray(transData) ? transData : []);
-      setSummary(summaryData);
-      setSearchParams(params);
+      if (transRes.count !== undefined) setTotalCount(transRes.count);
+      setSummary(summaryRes);
+
+      const displayParams = { ...params };
+      delete displayParams.page;
+      setSearchParams(displayParams);
     } catch (err) {
       console.error('Failed to fetch transactions:', err);
     } finally {
       setLoading(false);
     }
-  }, [filters, setSearchParams]);
+  }, [filters, page, setSearchParams]);
 
   useEffect(() => {
     fetchTransactions();
@@ -113,12 +128,13 @@ const TransactionsPage = () => {
 
   const handleChipClick = (chip) => {
     setActiveChip(chip.key);
+    setPage(1);
     setFilters({
       type:             '',
       status:           '',
       start_date:       '',
       end_date:         '',
-      search:           filters.search, // keep live search
+      search:           filters.search,
       receivables_only: '',
       payables_only:    '',
       overdue:          '',
@@ -128,14 +144,18 @@ const TransactionsPage = () => {
 
   const handleFilterChange = (key, value) => {
     setActiveChip('custom');
+    setPage(1);
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const clearFilters = () => {
     setActiveChip('all');
+    setPage(1);
     setFilters({ type: '', status: '', start_date: '', end_date: '', search: '',
                  receivables_only: '', payables_only: '', overdue: '' });
   };
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const hasActiveFilters = Object.values(filters).some(v => v);
 
@@ -153,7 +173,10 @@ const TransactionsPage = () => {
             <h1 className="text-lg font-bold text-gray-800">Transactions</h1>
           </div>
           <button
-            onClick={() => setShowQuickRecord(true)}
+            onClick={() => {
+              setQuickRecordType(filters.type || 'sale');
+              setShowQuickRecord(true);
+            }}
             className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold
               hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
           >
@@ -295,10 +318,13 @@ const TransactionsPage = () => {
             <div className="py-16 flex justify-center"><Spinner /></div>
           ) : transactions.length > 0 ? (
             <>
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-500">
-                  {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+                  {totalCount > 0 ? `${totalCount} transaction${totalCount !== 1 ? 's' : ''}` : `${transactions.length} transactions`}
                 </span>
+                {totalPages > 1 && (
+                  <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
+                )}
               </div>
               {transactions.map((t) => (
                 <TransactionItem
@@ -307,6 +333,36 @@ const TransactionsPage = () => {
                   onClick={(id) => navigate(`/acshow/transactions/${id}`)}
                 />
               ))}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft size={16} /> Previous
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      const p = totalPages <= 5 ? i + 1 : page <= 3 ? i + 1 : page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i;
+                      return (
+                        <button key={p} onClick={() => setPage(p)}
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${p === page ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <EmptyState
@@ -316,7 +372,7 @@ const TransactionsPage = () => {
                 ? 'Try adjusting your filters'
                 : 'Start recording your daily transactions'}
               actionLabel={hasActiveFilters ? '' : 'Record First Transaction'}
-              onAction={hasActiveFilters ? null : () => setShowQuickRecord(true)}
+              onAction={hasActiveFilters ? null : () => { setQuickRecordType('sale'); setShowQuickRecord(true); }}
             />
           )}
         </div>
@@ -324,8 +380,9 @@ const TransactionsPage = () => {
 
       {showQuickRecord && (
         <QuickRecordModal
-          onClose={() => setShowQuickRecord(false)}
-          onSuccess={() => { setShowQuickRecord(false); fetchTransactions(); }}
+          type={quickRecordType}
+          onClose={() => { setShowQuickRecord(false); setQuickRecordType(null); }}
+          onSuccess={() => { setShowQuickRecord(false); setQuickRecordType(null); fetchTransactions(); }}
         />
       )}
     </div>

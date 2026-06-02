@@ -9,6 +9,7 @@ export const acshowAPI = {
   getTransactions: (filters = {}) =>
     apiClient.get(`/acshow/transactions/?${new URLSearchParams(filters)}`),
   createTransaction:       (data)    => apiClient.post('/acshow/transactions/', data),
+  createTransactionFormData: (fd)   => apiClient.postFormData('/acshow/transactions/', fd),
   getTransaction:          (id)      => apiClient.get(`/acshow/transactions/${id}/`),
   updateTransaction:       (id, data) => apiClient.put(`/acshow/transactions/${id}/`, data),
   patchTransaction:        (id, data) => apiClient.patch(`/acshow/transactions/${id}/`, data),
@@ -63,7 +64,7 @@ export const acshowAPI = {
     apiClient.get(`/acshow/categories/${type ? `?type=${type}` : ''}`),
 
   // ── Products (for sale/purchase modals) ───────────────────
-  getProducts: () => apiClient.get('/products/'),
+  getProducts: () => apiClient.get('/products/products/'),
 
   // ── Trial ─────────────────────────────────────────────────
   startTrial: () => apiClient.post('/acshow/trial/start/'),

@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Sum, Q
 from datetime import timedelta
@@ -120,7 +121,14 @@ class DashboardSummaryCardsView(APIView):
 # TRANSACTIONS
 # ============================================================
 
+class TransactionPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class TransactionViewSet(viewsets.ModelViewSet):
+    pagination_class = TransactionPagination
     permission_classes = [IsAuthenticated, HasAcShowAccess]
 
     def get_serializer_class(self):
@@ -257,16 +265,19 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({'success': True, 'message': 'Transaction cancelled.'})
 
         elif act == 'update_payment':
-            paid = serializer.validated_data['paid_amount']
-            # Add to cash_hand_amount (partial collection)
-            txn.cash_hand_amount = min(paid, txn.amount)
+            from decimal import Decimal
+            paid = Decimal(str(serializer.validated_data['paid_amount']))
+            current = (txn.cash_hand_amount or Decimal('0')) + (txn.cash_bank_amount or Decimal('0'))
+            outstanding = max(txn.amount - current, Decimal('0'))
+            payment = min(paid, outstanding)
+            txn.cash_hand_amount = (txn.cash_hand_amount or Decimal('0')) + payment
             txn.save()  # save() recalculates remaining_amount and credit_amount
             if txn.remaining_amount == 0:
                 txn.status = 'approved'
                 txn.save()
             return Response({
                 'success': True,
-                'message': f'Payment of {paid} recorded.',
+                'message': f'Payment of {payment} recorded.',
                 'remaining': txn.remaining_amount,
             })
 

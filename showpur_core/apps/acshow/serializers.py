@@ -34,6 +34,7 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
     is_overdue = serializers.BooleanField(read_only=True)
     days_overdue = serializers.IntegerField(read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True, default=None)
 
     class Meta:
         model = AcShowTransaction
@@ -45,7 +46,7 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
             'paid_amount', 'remaining_amount',
             'transaction_category', 'category_display',
             'party_name', 'party_type', 'contact',
-            'product', 'quantity', 'sale_source',
+            'product', 'product_name', 'quantity', 'sale_source',
             'status', 'status_display',
             'transaction_date', 'due_date',
             'is_overdue', 'days_overdue',
@@ -64,6 +65,7 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class AcShowTransactionCreateSerializer(serializers.ModelSerializer):
+    save_as_draft = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = AcShowTransaction
@@ -89,6 +91,7 @@ class AcShowTransactionCreateSerializer(serializers.ModelSerializer):
             'is_recurring',
             'recurrence_pattern',
             'receipt_image',
+            'save_as_draft',
         ]
 
     def validate_amount(self, value):
@@ -130,8 +133,8 @@ class AcShowTransactionCreateSerializer(serializers.ModelSerializer):
         except BusinessProfile.DoesNotExist:
             raise serializers.ValidationError("Business profile not found. Please complete your profile first.")
 
-        # Single-operator (staff_role='both'/'admin') self-approves immediately
-        initial_status = 'approved' if user.can_self_approve else 'pending'
+        save_as_draft = validated_data.pop('save_as_draft', False)
+        initial_status = 'pending' if save_as_draft else ('approved' if user.can_self_approve else 'pending')
 
         return AcShowTransaction.objects.create(
             business=business,
@@ -155,6 +158,7 @@ class AcShowTransactionDetailSerializer(serializers.ModelSerializer):
     alerts = serializers.SerializerMethodField()
     is_overdue = serializers.BooleanField(read_only=True)
     days_overdue = serializers.IntegerField(read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True, default=None)
 
     class Meta:
         model = AcShowTransaction
@@ -583,11 +587,11 @@ class AcShowDashboardSerializer(serializers.Serializer):
             'recent_transactions': recent,
             'unread_alerts_count': unread,
             'quick_actions': [
-                {'type': 'sale',       'label': 'Record Sale',     'url': '/acshow/transactions/new?type=sale'},
-                {'type': 'purchase',   'label': 'Record Purchase', 'url': '/acshow/transactions/new?type=purchase'},
-                {'type': 'income',     'label': 'Receive Money',   'url': '/acshow/transactions/new?type=income'},
-                {'type': 'expense',    'label': 'Pay Expense',     'url': '/acshow/transactions/new?type=expense'},
-                {'type': 'receivable', 'label': 'Add Receivable',  'url': '/acshow/transactions/new?type=receivable'},
-                {'type': 'payable',    'label': 'Add Payable',     'url': '/acshow/transactions/new?type=payable'},
+                {'type': 'sale',       'label': 'Record Sale',     'url': '/acshow/transactions?openType=sale'},
+                {'type': 'purchase',   'label': 'Record Purchase', 'url': '/acshow/transactions?openType=purchase'},
+                {'type': 'income',     'label': 'Receive Money',   'url': '/acshow/transactions?openType=income'},
+                {'type': 'expense',    'label': 'Pay Expense',     'url': '/acshow/transactions?openType=expense'},
+                {'type': 'receivable', 'label': 'Add Receivable',  'url': '/acshow/transactions?openType=receivable'},
+                {'type': 'payable',    'label': 'Add Payable',     'url': '/acshow/transactions?openType=payable'},
             ],
         })

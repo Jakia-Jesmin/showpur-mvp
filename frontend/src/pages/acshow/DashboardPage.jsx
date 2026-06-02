@@ -16,6 +16,12 @@ import { Bell, RefreshCw, Menu, X } from 'lucide-react';
 import ContactsPage from '@/pages/acshow/contacts/ContactsPage';
 import ProductsPage from '@/pages/acshow/products/ProductsPage';
 import AlertsPage from '@/pages/acshow/alerts/AlertsPage';
+import TransactionsPage from '@/pages/acshow/TransactionsPage';
+import TransactionDetailPage from '@/pages/acshow/TransactionDetailPage';
+import CashflowPage from '@/pages/acshow/CashflowPage';
+import ReceivablesPage from '@/pages/acshow/ReceivablesPage';
+import PayablesPage from '@/pages/acshow/PayablesPage';
+import HealthPage from '@/pages/acshow/HealthPage';
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -118,6 +124,12 @@ const DashboardPage = () => {
               <Route path="settings" element={<SettingsView />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="alerts" element={<AlertsPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
+              <Route path="transactions/:id" element={<TransactionDetailPage />} />
+              <Route path="cashflow" element={<CashflowPage />} />
+              <Route path="receivables" element={<ReceivablesPage />} />
+              <Route path="payables" element={<PayablesPage />} />
+              <Route path="health" element={<HealthPage />} />
               <Route path="*" element={<div className="text-center py-12">Page not found</div>} />
             </Routes>
           </ErrorBoundary>

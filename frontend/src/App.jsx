@@ -154,8 +154,7 @@ function AppRoutes() {
       {/* PASSWORD RESET */}
       {/* ============================================ */}
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />.
-      <Route path="/acshow/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* ============================================ */}
       {/* ACSHOW ROUTES */}

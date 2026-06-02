@@ -10,7 +10,7 @@ const AgreementsPage = () => {
   useEffect(() => {
     const fetchAgreements = async () => {
       try {
-        const response = await api.get('/agreements/agreements/');
+        const response = await api.get('/display/agreements/');
         setAgreements(response.data.results || response.data || []);
       } catch (err) {
         console.error("Failed to fetch agreements", err);

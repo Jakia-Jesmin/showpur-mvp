@@ -206,6 +206,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
+    # description is required in the model but optional in the form
+    description = serializers.CharField(required=False, allow_blank=True, default='')
+
     class Meta:
         model  = Product
         fields = [
@@ -220,6 +223,17 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             'is_active',
         ]
         # stock_quantity / reserved_* deliberately absent — signals own them
+        # Text-only optional fields: send '' not null (model has blank=True, not null=True)
+        extra_kwargs = {
+            'short_description': {'required': False, 'allow_blank': True},
+            'video_url':         {'required': False, 'allow_blank': True},
+            'dimensions':        {'required': False, 'allow_blank': True},
+            'color':             {'required': False, 'allow_blank': True},
+            'material':          {'required': False, 'allow_blank': True},
+            'meta_title':        {'required': False, 'allow_blank': True},
+            'meta_description':  {'required': False, 'allow_blank': True},
+            'meta_keywords':     {'required': False, 'allow_blank': True},
+        }
 
     def create(self, validated_data):
         # 🌟 Clean, safe extraction of the request context layer

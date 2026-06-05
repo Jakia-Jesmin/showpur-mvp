@@ -10,7 +10,7 @@ export const useProducts = (filters = {}) => {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await productsAPI.list(filters);
+      const res = await productsAPI.getMyProducts();
       const data = res.results || res;
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {

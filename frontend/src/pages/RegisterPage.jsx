@@ -3,12 +3,11 @@ import { useAuth } from '../hooks/useAuth';
 
 function RegisterForm({ onSuccess }) {
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
+    phone: '',
     password: '',
     password2: '',
     role: 'producer',
-    phone: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -102,16 +101,6 @@ function RegisterForm({ onSuccess }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
-            <label className="text-sm font-bold text-gray-700 ml-1">Username*</label>
-            <input
-              type="text" name="username" value={formData.username}
-              onChange={handleChange} required placeholder="johndoe"
-              className={inputClass('username')}
-            />
-            {errors.username && <p className="text-xs text-red-500 font-bold ml-1 italic">{errors.username}</p>}
-          </div>
-
-          <div className="space-y-1">
             <label className="text-sm font-bold text-gray-700 ml-1">Email Address*</label>
             <input
               type="email" name="email" value={formData.email}
@@ -119,6 +108,16 @@ function RegisterForm({ onSuccess }) {
               className={inputClass('email')}
             />
             {errors.email && <p className="text-xs text-red-500 font-bold ml-1 italic">{errors.email}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-bold text-gray-700 ml-1">Phone Number*</label>
+            <input
+              type="tel" name="phone" value={formData.phone}
+              onChange={handleChange} required placeholder="01XXXXXXXXX"
+              className={inputClass('phone')}
+            />
+            {errors.phone && <p className="text-xs text-red-500 font-bold ml-1 italic">{errors.phone}</p>}
           </div>
         </div>
 
@@ -142,15 +141,6 @@ function RegisterForm({ onSuccess }) {
             />
             {errors.password2 && <p className="text-xs text-red-500 font-bold ml-1 italic">{errors.password2}</p>}
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-bold text-gray-700 ml-1">Phone Number (Optional)</label>
-          <input
-            type="tel" name="phone" value={formData.phone}
-            onChange={handleChange} placeholder="+880..."
-            className={inputClass('phone')}
-          />
         </div>
 
         {errors.general && (

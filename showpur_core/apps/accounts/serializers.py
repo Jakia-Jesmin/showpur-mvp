@@ -12,29 +12,35 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
-    
+
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'role', 'phone']
-    
+        fields = ['email', 'phone', 'password', 'password2', 'role']
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
-        
-        # Check if email already exists
+
         if User.objects.filter(email=attrs['email']).exists():
             raise serializers.ValidationError({"email": "Email already registered."})
-        
-        # Check if username already exists
-        if User.objects.filter(username=attrs['username']).exists():
-            raise serializers.ValidationError({"username": "Username already taken."})
-        
+
+        if User.objects.filter(phone=attrs['phone']).exists():
+            raise serializers.ValidationError({"phone": "Phone number already registered."})
+
         return attrs
-    
+
     def create(self, validated_data):
         validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
-        return user
+        # username is required by AbstractUser but not user-facing — derive from email
+        email = validated_data['email']
+        base = email.split('@')[0]
+        username = base
+        suffix = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base}{suffix}"
+            suffix += 1
+        validated_data['username'] = username
+        return User.objects.create_user(**validated_data)
 
 class LoginSerializer(serializers.Serializer):
     identifier = serializers.CharField(required=True)

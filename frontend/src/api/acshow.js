@@ -59,9 +59,12 @@ export const acshowAPI = {
   updateContact: (id, data) => apiClient.put(`/acshow/contacts/${id}/`, data),
   deleteContact: (id)   => apiClient.delete(`/acshow/contacts/${id}/`),
 
-  // ── Categories ────────────────────────────────────────────
-  getCategories: (type) =>
-    apiClient.get(`/acshow/categories/${type ? `?type=${type}` : ''}`),
+  // ── Chart of Accounts ─────────────────────────────────────
+  getAccounts: (type) =>
+    apiClient.get(`/ledger/accounts/${type ? `?type=${type}` : ''}`),
+  createAccount: (data) => apiClient.post('/ledger/accounts/', data),
+  updateAccount: (id, data) => apiClient.patch(`/ledger/accounts/${id}/`, data),
+  deleteAccount: (id) => apiClient.delete(`/ledger/accounts/${id}/`),
 
   // ── Products (for sale/purchase modals) ───────────────────
   getProducts: () => apiClient.get('/products/products/'),

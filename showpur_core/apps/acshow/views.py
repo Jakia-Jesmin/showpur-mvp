@@ -12,7 +12,7 @@ from apps.accounts.models import BusinessProfile
 from apps.connections.models import Contact
 from .models import (
     AcShowTransaction, AcShowCashPosition, QuickRecord,
-    AcShowAlert, BusinessHealth, TransactionCategory,
+    AcShowAlert, BusinessHealth,
 )
 from .serializers import (
     AcShowDashboardSerializer,
@@ -27,7 +27,6 @@ from .serializers import (
     AlertMarkReadSerializer,
     BusinessHealthSerializer,
     ContactSerializer,
-    TransactionCategorySerializer,
     compute_account_balances,
     compute_daily_pl,
     compute_daily_cash_position,
@@ -145,7 +144,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         business = get_business(self.request.user)
         qs = AcShowTransaction.objects.filter(business=business).select_related(
-            'created_by', 'product', 'contact', 'transaction_category',
+            'created_by', 'product', 'contact', 'account',
             'approved_by', 'rejected_by',
         )
 
@@ -183,7 +182,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         cat = p.get('category')
         if cat:
-            qs = qs.filter(transaction_category_id=cat)
+            qs = qs.filter(account_id=cat)
 
         party_type = p.get('party_type')
         if party_type:
@@ -556,17 +555,6 @@ class ContactViewSet(viewsets.ModelViewSet):
 # CATEGORIES
 # ============================================================
 
-class TransactionCategoryViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, HasAcShowAccess]
-    serializer_class = TransactionCategorySerializer
-
-    def get_queryset(self):
-        business = get_business(self.request.user)
-        qs = TransactionCategory.objects.filter(business=business, is_active=True)
-        t = self.request.query_params.get('type')
-        if t:
-            qs = qs.filter(category_type=t)
-        return qs
 
 
 # ============================================================

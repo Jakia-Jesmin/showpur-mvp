@@ -8,7 +8,6 @@ router.register(r'quick-records', views.QuickRecordViewSet,         basename='qu
 router.register(r'cash-positions', views.CashPositionViewSet,       basename='cash-position')
 router.register(r'contacts',       views.ContactViewSet,            basename='acshow-contact')
 router.register(r'alerts',         views.AlertViewSet,              basename='alert')
-router.register(r'categories',     views.TransactionCategoryViewSet, basename='category')
 
 urlpatterns = [
     # Dashboard

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.connections',
     'apps.products',
+    'apps.ledger',
     'apps.acshow',
 
     # Post-MVP (keep installed for migrations, but no URLs exposed)

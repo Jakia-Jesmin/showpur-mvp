@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator
 import uuid
 from decimal import Decimal
 from apps.connections.models import Contact
+from apps.ledger.models import Account
 
 
 # ============================================================
@@ -19,39 +20,6 @@ SALE_SOURCE_CHOICES = [
     ('consignment', 'Consignment'),
     ('manual', 'Manual'),
 ]
-
-
-# ============================================================
-# TRANSACTION CATEGORY (Chart of Accounts)
-# ============================================================
-
-class TransactionCategory(models.Model):
-    CATEGORY_TYPES = [
-        ('income', 'Money In'),
-        ('expense', 'Money Out'),
-    ]
-    business = models.ForeignKey(
-        'accounts.BusinessProfile', on_delete=models.CASCADE,
-        related_name='acshow_categories'
-    )
-    name = models.CharField(max_length=100)
-    name_bn = models.CharField(max_length=100, blank=True)
-    category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)
-    icon = models.CharField(max_length=10, blank=True)
-    is_default = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    order = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'acshow_categories'
-        ordering = ['order', 'name']
-        unique_together = ['business', 'name']
-        verbose_name = 'Category'
-        verbose_name_plural = 'Categories'
-
-    def __str__(self):
-        return f"{self.icon} {self.name}"
 
 
 # ============================================================
@@ -113,8 +81,8 @@ class AcShowTransaction(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))]
     )
     description = models.TextField()
-    transaction_category = models.ForeignKey(
-        TransactionCategory, on_delete=models.SET_NULL,
+    account = models.ForeignKey(
+        Account, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='transactions'
     )
 
@@ -202,7 +170,7 @@ class AcShowTransaction(models.Model):
             models.Index(fields=['business', 'transaction_type', 'status']),
             models.Index(fields=['business', 'transaction_date']),
             models.Index(fields=['due_date', 'status']),
-            models.Index(fields=['transaction_category']),
+            models.Index(fields=['account']),
         ]
 
     def __str__(self):
@@ -354,8 +322,8 @@ class QuickRecord(models.Model):
     )
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     sale_source = models.CharField(max_length=20, choices=SALE_SOURCE_CHOICES, default='manual')
-    transaction_category = models.ForeignKey(
-        TransactionCategory, on_delete=models.SET_NULL, null=True, blank=True
+    account = models.ForeignKey(
+        Account, on_delete=models.SET_NULL, null=True, blank=True
     )
 
     # Payment details
@@ -400,7 +368,7 @@ class QuickRecord(models.Model):
             transaction_type=self._map_transaction_type(),
             amount=self.amount,
             description=self.description,
-            transaction_category=self.transaction_category,
+            account=self.account,
             contact=self.contact,
             product=self.product,
             quantity=self.quantity,

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Lock, Bell, Shield, HelpCircle, BookOpen, MessageCircle, Download, ChevronRight } from 'lucide-react';
+import { Lock, Bell, Shield, HelpCircle, BookOpen, MessageCircle, Download, ChevronRight, LayoutList } from 'lucide-react';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -84,6 +84,27 @@ const SettingsPage = () => {
               <span className="font-semibold text-emerald-700">AcShow Pro Active</span>
             </div>
           )}
+        </div>
+
+        {/* Chart of Accounts */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <LayoutList size={16} className="text-emerald-600" />
+            Accounts (হিসাব)
+          </h3>
+          <button
+            onClick={() => navigate('/acshow/chart-of-accounts')}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">📊</span>
+              <div className="text-left">
+                <p className="text-sm font-medium text-gray-700">Chart of Accounts</p>
+                <p className="text-xs text-gray-400">Manage income, expense & wallet accounts</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-gray-400" />
+          </button>
         </div>
 
         {/* Preferences */}

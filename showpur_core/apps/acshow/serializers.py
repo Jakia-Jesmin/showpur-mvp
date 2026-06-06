@@ -5,21 +5,9 @@ from apps.accounts.models import BusinessProfile
 from apps.connections.models import Contact
 from .models import (
     AcShowTransaction, AcShowCashPosition, QuickRecord,
-    AcShowAlert, BusinessHealth, TransactionCategory,
+    AcShowAlert, BusinessHealth,
 )
-
-
-# ============================================================
-# CATEGORY
-# ============================================================
-
-class TransactionCategorySerializer(serializers.ModelSerializer):
-    category_type_display = serializers.CharField(source='get_category_type_display', read_only=True)
-
-    class Meta:
-        model = TransactionCategory
-        fields = ['id', 'name', 'name_bn', 'icon', 'category_type', 'category_type_display']
-        read_only_fields = ['id']
+from apps.ledger.serializers import AccountSerializer
 
 
 # ============================================================
@@ -30,7 +18,7 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
     transaction_type_display = serializers.CharField(source='get_transaction_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
-    category_display = serializers.SerializerMethodField()
+    account_display = serializers.SerializerMethodField()
     is_overdue = serializers.BooleanField(read_only=True)
     days_overdue = serializers.IntegerField(read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
@@ -44,7 +32,7 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
             'payment_method', 'payment_method_display',
             'cash_hand_amount', 'cash_bank_amount', 'credit_amount',
             'paid_amount', 'remaining_amount',
-            'transaction_category', 'category_display',
+            'account', 'account_display',
             'party_name', 'party_type', 'contact',
             'product', 'product_name', 'quantity', 'sale_source',
             'status', 'status_display',
@@ -54,9 +42,9 @@ class AcShowTransactionListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'paid_amount', 'remaining_amount', 'credit_amount']
 
-    def get_category_display(self, obj):
-        if obj.transaction_category:
-            return f"{obj.transaction_category.icon} {obj.transaction_category.name}"
+    def get_account_display(self, obj):
+        if obj.account:
+            return f"{obj.account.icon} {obj.account.name}"
         return ''
 
 
@@ -73,7 +61,7 @@ class AcShowTransactionCreateSerializer(serializers.ModelSerializer):
             'transaction_type',
             'amount',
             'description',
-            'transaction_category',
+            'account',
             'payment_method',
             'cash_hand_amount',
             'cash_bank_amount',
@@ -152,7 +140,7 @@ class AcShowTransactionDetailSerializer(serializers.ModelSerializer):
     transaction_type_display = serializers.CharField(source='get_transaction_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
-    category_display = serializers.SerializerMethodField()
+    account_display = serializers.SerializerMethodField()
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     business_name = serializers.CharField(source='business.business_name', read_only=True)
     alerts = serializers.SerializerMethodField()
@@ -162,13 +150,13 @@ class AcShowTransactionDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AcShowTransaction
-        exclude = []  # all fields
+        exclude = []
         read_only_fields = ['id', 'business', 'created_by', 'created_at', 'updated_at',
                             'paid_amount', 'remaining_amount', 'credit_amount']
 
-    def get_category_display(self, obj):
-        if obj.transaction_category:
-            return f"{obj.transaction_category.icon} {obj.transaction_category.name}"
+    def get_account_display(self, obj):
+        if obj.account:
+            return f"{obj.account.icon} {obj.account.name}"
         return ''
 
     def get_alerts(self, obj):
@@ -250,7 +238,7 @@ class QuickRecordSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'entry_type', 'entry_type_display', 'amount', 'description',
             'cash_hand_amount', 'cash_bank_amount',
-            'transaction_category', 'tag', 'party_name', 'is_paid', 'due_date',
+            'account', 'tag', 'party_name', 'is_paid', 'due_date',
             'contact', 'product', 'quantity', 'sale_source',
             'created_by_name', 'time_ago', 'created_at',
         ]

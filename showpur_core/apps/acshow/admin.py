@@ -20,7 +20,7 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
         'created_by', 'approved_by'
     ]
     list_filter = [
-        'transaction_type', 'status', 'transaction_category', 'party_type',
+        'transaction_type', 'status', 'account', 'party_type',
         'transaction_date', 'due_date'
     ]
     actions = ['approve_transactions', 'reject_transactions']
@@ -52,7 +52,7 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
         ('Details', {
             'fields': (
                 'transaction_type', 'amount', 'paid_amount',
-                'remaining_amount', 'description', 'transaction_category'
+                'remaining_amount', 'description', 'account'
             )
         }),
         ('Party', {

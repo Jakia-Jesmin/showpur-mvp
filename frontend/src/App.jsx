@@ -29,6 +29,7 @@ import PayablesPage from '@/pages/acshow/PayablesPage';
 import AlertsPage from '@/pages/acshow/alerts/AlertsPage';
 import HealthPage from '@/pages/acshow/HealthPage';
 import SettingsPage from '@/pages/acshow/SettingsPage';
+import ChartOfAccountsPage from '@/pages/acshow/ChartOfAccountsPage';
 
 // Components
 import PrivateRoute from '@/components/PrivateRoute';
@@ -175,6 +176,17 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <ChangePasswordPage />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/acshow/chart-of-accounts"
+        element={
+          <PrivateRoute>
+            <AcShowRoute>
+              <ChartOfAccountsPage />
+            </AcShowRoute>
           </PrivateRoute>
         }
       />

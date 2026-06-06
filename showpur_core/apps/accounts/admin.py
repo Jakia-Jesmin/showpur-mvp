@@ -4,22 +4,22 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User, BusinessProfile
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('id', 'email', 'username', 'role', 'phone', 'acshow_enabled', 'email_verified', 'is_active', 'created_at')
-    list_filter = ('role', 'is_active', 'is_staff', 'email_verified', 'created_at')
+    list_display = ('id', 'email', 'username', 'role', 'staff_role', 'phone', 'acshow_enabled', 'email_verified', 'is_active', 'created_at')
+    list_filter = ('role', 'staff_role', 'is_active', 'is_staff', 'email_verified', 'created_at')
     search_fields = ('email', 'username', 'phone')
     ordering = ('-created_at',)
-    
+
     fieldsets = UserAdmin.fieldsets + (
-        ('Additional Info', {'fields': ('role', 'phone', 'email_verified')}),
+        ('Additional Info', {'fields': ('role', 'staff_role', 'phone', 'email_verified')}),
         ('AcShow Access', {
             'fields': ('acshow_enabled', 'acshow_trial_start', 'acshow_trial_end', 'acshow_onboarding_completed'),
             'classes': ('collapse',),
             'description': 'Control access to AcShow financial tools'
         }),
     )
-    
+
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Additional Info', {'fields': ('role', 'phone', 'email')}),
+        ('Additional Info', {'fields': ('role', 'staff_role', 'phone', 'email')}),
     )
 
 class BusinessProfileAdmin(admin.ModelAdmin):

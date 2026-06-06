@@ -16,13 +16,28 @@ from .models import (
 class AcShowTransactionAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'business', 'transaction_type_badge', 'amount_display',
-        'party_name', 'status_badge', 'transaction_date', 'due_date',
-        'approval_status_badge', 'created_by', 'approved_by'
+        'party_name', 'approval_status_badge', 'transaction_date', 'due_date',
+        'created_by', 'approved_by'
     ]
     list_filter = [
         'transaction_type', 'status', 'transaction_category', 'party_type',
         'transaction_date', 'due_date'
     ]
+    actions = ['approve_transactions', 'reject_transactions']
+
+    @admin.action(description='Approve selected transactions')
+    def approve_transactions(self, request, queryset):
+        updated = queryset.filter(status='pending').update(
+            status='approved', approved_by=request.user
+        )
+        self.message_user(request, f'{updated} transaction(s) approved.')
+
+    @admin.action(description='Reject selected transactions')
+    def reject_transactions(self, request, queryset):
+        updated = queryset.filter(status='pending').update(
+            status='rejected', rejected_by=request.user
+        )
+        self.message_user(request, f'{updated} transaction(s) rejected.')
     search_fields = [
         'party_name', 'description', 'business__business_name',
         'business__user__email'
@@ -44,7 +59,10 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
             'fields': ('party_name', 'party_phone', 'party_type', 'linked_producer')
         }),
         ('Dates & Status', {
-            'fields': ('transaction_date', 'due_date', 'completed_date', 'status')
+            'fields': ('transaction_date', 'due_date', 'status')
+        }),
+        ('Maker-Checker', {
+            'fields': ('approved_by', 'rejected_by', 'rejection_reason', 'edited_by'),
         }),
         ('Additional', {
             'fields': ('notes', 'receipt_image', 'is_recurring', 'recurrence_pattern'),
@@ -72,22 +90,6 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
     amount_display.short_description = 'Amount'
     amount_display.admin_order_field = 'amount'
     
-    def status_badge(self, obj):
-        colors = {
-            'completed': 'green',
-            'pending': 'orange',
-            'overdue': 'red',
-            'cancelled': 'gray',
-        }
-        color = colors.get(obj.status, 'gray')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 2px 8px; '
-            'border-radius: 10px; font-size: 12px;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
-
     def approval_status_badge(self, obj):
         colors = {
             'pending': 'orange',
@@ -95,8 +97,12 @@ class AcShowTransactionAdmin(admin.ModelAdmin):
             'rejected': 'red',
             'pending_edit': 'purple',
         }
-        return format_html('<span style="background-color:{};color:white;padding:2px 8px;border-radius:10px;font-size:12px">{}</span>',
-            colors.get(obj.status, 'gray'), obj.get_status_display())
+        return format_html(
+            '<span style="background-color:{};color:white;padding:2px 8px;'
+            'border-radius:10px;font-size:12px">{}</span>',
+            colors.get(obj.status, 'gray'), obj.get_status_display()
+        )
+    approval_status_badge.short_description = 'Approval'
 @admin.register(AcShowCashPosition)
 class AcShowCashPositionAdmin(admin.ModelAdmin):
     list_display = [

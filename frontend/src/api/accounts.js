@@ -4,7 +4,7 @@ import baseApi from './baseApi';
 export const accountsAPI = {
   register: (userData) => baseApi.post('/auth/register/', userData),
   
-  login: (username, password) => baseApi.post('/auth/login/', { username, password }),
+  login: (identifier, password) => baseApi.post('/auth/login/', { identifier, password }),
   
   getProfile: () => baseApi.get('/auth/profile/'),
   

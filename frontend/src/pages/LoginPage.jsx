@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 function LoginForm({ onSuccess }) {
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
@@ -22,12 +22,12 @@ function LoginForm({ onSuccess }) {
     setLoading(true);
     setErrors({});
 
-    const result = await login(formData.username, formData.password, rememberMe);
+    const result = await login(formData.identifier, formData.password, rememberMe);
     
     if (result.success) {
       if (onSuccess) onSuccess(result.user);
     } else {
-      setErrors({ general: result.error || 'Invalid Username or Password. Please try again.' });
+      setErrors({ general: result.error || 'Invalid email/phone or password. Please try again.' });
     }
     setLoading(false);
   };
@@ -49,11 +49,11 @@ function LoginForm({ onSuccess }) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1">
-          <label className="text-sm font-bold text-gray-700 ml-1">Username</label>
+          <label className="text-sm font-bold text-gray-700 ml-1">Email or Phone Number</label>
           <input
-            type="text" name="username" value={formData.username || ''}
-            onChange={handleChange} required placeholder="Username"
-            className={inputClass('username')}
+            type="text" name="identifier" value={formData.identifier}
+            onChange={handleChange} required placeholder="your@email.com or 01XXXXXXXXX"
+            className={inputClass('identifier')}
           />
         </div>
 

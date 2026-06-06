@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (username, password) => {
+  const login = async (identifier, password) => {
     try {
-      const response = await accountsAPI.login(username, password);
+      const response = await accountsAPI.login(identifier, password);
       const { access, refresh, user: userData } = response;
       
       localStorage.setItem('access', access);

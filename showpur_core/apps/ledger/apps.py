@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 class LedgerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.ledger'
+    name = 'showpur_core.apps.ledger'
 
     def ready(self):
-        import apps.ledger.signals  # noqa
+        import showpur_core.apps.ledger.signals  # noqa

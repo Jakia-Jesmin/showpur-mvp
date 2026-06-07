@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from .models import ConnectionRequest, Connection, Contact
-from apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
+from showpur_core.apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
 
 class ContactSerializer(serializers.ModelSerializer):
     """Customer & Supplier serializer."""

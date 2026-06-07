@@ -4,10 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
-from apps.products.models import Product
-from apps.display.models import DisplayAgreement, InventoryTransaction
-from apps.connections.models import Connection, ConnectionRequest
-from apps.social.models import Post
+from showpur_core.apps.products.models import Product
+from showpur_core.apps.display.models import DisplayAgreement, InventoryTransaction
+from showpur_core.apps.connections.models import Connection, ConnectionRequest
+from showpur_core.apps.social.models import Post
 
 class ProducerDashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]

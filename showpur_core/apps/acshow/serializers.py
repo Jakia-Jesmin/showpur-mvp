@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Sum, Q
-from apps.accounts.models import BusinessProfile
-from apps.connections.models import Contact
+from showpur_core.apps.accounts.models import BusinessProfile
+from showpur_core.apps.connections.models import Contact
 from .models import (
     AcShowTransaction, AcShowCashPosition, QuickRecord,
     AcShowAlert, BusinessHealth,
 )
-from apps.ledger.serializers import AccountSerializer
+from showpur_core.apps.ledger.serializers import AccountSerializer
 
 
 # ============================================================

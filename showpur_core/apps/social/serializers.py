@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Like, Comment, CommentLike, PostView
-from apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
-from apps.products.serializers import ProductListSerializer
+from showpur_core.apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
+from showpur_core.apps.products.serializers import ProductListSerializer
 
 class CommentSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.profile.business_name', read_only=True)

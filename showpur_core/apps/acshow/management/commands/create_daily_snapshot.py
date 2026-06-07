@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta, date
-from apps.acshow.models import AcShowCashPosition, AcShowTransaction
-from apps.accounts.models import BusinessProfile
+from showpur_core.apps.acshow.models import AcShowCashPosition, AcShowTransaction
+from showpur_core.apps.accounts.models import BusinessProfile
 from django.db.models import Sum
 
 class Command(BaseCommand):

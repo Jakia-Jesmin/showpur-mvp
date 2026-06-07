@@ -25,16 +25,16 @@ def home(request):
 urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
-    path('api/auth/', include('apps.accounts.urls')),
-    path('api/connections/', include('apps.connections.urls')),
-    path('api/products/', include('apps.products.urls')),
-    path('api/display/', include('apps.display.urls')),
-    path('api/social/', include('apps.social.urls')),
-    path('api/dashboard/', include('apps.dashboard.urls')),
-    path('api/notifications/', include('apps.notifications.urls')),
-    path('api/search/', include('apps.search.urls')),
-    path('api/ledger/', include('apps.ledger.urls')),
-    path('api/acshow/', include('apps.acshow.urls')),
+    path('api/auth/', include('showpur_core.apps.accounts.urls')),
+    path('api/connections/', include('showpur_core.apps.connections.urls')),
+    path('api/products/', include('showpur_core.apps.products.urls')),
+    path('api/display/', include('showpur_core.apps.display.urls')),
+    path('api/social/', include('showpur_core.apps.social.urls')),
+    path('api/dashboard/', include('showpur_core.apps.dashboard.urls')),
+    path('api/notifications/', include('showpur_core.apps.notifications.urls')),
+    path('api/search/', include('showpur_core.apps.search.urls')),
+    path('api/ledger/', include('showpur_core.apps.ledger.urls')),
+    path('api/acshow/', include('showpur_core.apps.acshow.urls')),
 ]
 
 if settings.DEBUG:

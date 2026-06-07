@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from apps.accounts.models import BusinessProfile
+from showpur_core.apps.accounts.models import BusinessProfile
 from .models import Account
 from .serializers import AccountSerializer
 

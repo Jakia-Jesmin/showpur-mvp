@@ -4,9 +4,9 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import status
 from django.db.models import Q, Count
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
-from apps.products.models import Product, Category
-from apps.accounts.models import BusinessProfile
-from apps.display.models import DisplayAgreement
+from showpur_core.apps.products.models import Product, Category
+from showpur_core.apps.accounts.models import BusinessProfile
+from showpur_core.apps.display.models import DisplayAgreement
 
 class GlobalSearchAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -156,7 +156,7 @@ class AdvancedSearchAPIView(APIView):
         total = queryset.count()
         products = queryset[start:end]
         
-        from apps.products.serializers import ProductListSerializer
+        from showpur_core.apps.products.serializers import ProductListSerializer
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         
         return Response({
@@ -214,7 +214,7 @@ class TrendingSearchAPIView(APIView):
             is_active=True
         )[:5]
         
-        from apps.products.serializers import ProductListSerializer, CategorySerializer
+        from showpur_core.apps.products.serializers import ProductListSerializer, CategorySerializer
         
         return Response({
             'popular_categories': CategorySerializer(popular_categories, many=True).data,

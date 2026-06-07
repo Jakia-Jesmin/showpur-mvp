@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 class AcshowConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.acshow'
+    name = 'showpur_core.apps.acshow'
 
     def ready(self):
-        import apps.acshow.signals  # noqa
+        import showpur_core.apps.acshow.signals  # noqa

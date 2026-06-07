@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import DisplayAgreement, InventoryTransaction, InventoryAuditLog
-from apps.products.serializers import ProductListSerializer
-from apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
+from showpur_core.apps.products.serializers import ProductListSerializer
+from showpur_core.apps.accounts.serializers import UserSerializer, BusinessProfileSerializer
 
 class DisplayAgreementSerializer(serializers.ModelSerializer):
     product_details = ProductListSerializer(source='product', read_only=True)

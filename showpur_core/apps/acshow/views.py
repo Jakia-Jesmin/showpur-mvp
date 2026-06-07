@@ -8,8 +8,8 @@ from django.utils import timezone
 from django.db.models import Sum, Q
 from datetime import timedelta
 
-from apps.accounts.models import BusinessProfile
-from apps.connections.models import Contact
+from showpur_core.apps.accounts.models import BusinessProfile
+from showpur_core.apps.connections.models import Contact
 from .models import (
     AcShowTransaction, AcShowCashPosition, QuickRecord,
     AcShowAlert, BusinessHealth,

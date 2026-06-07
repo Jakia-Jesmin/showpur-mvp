@@ -17,7 +17,7 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me-in-production')
+SECRET_KEY = env.str('SECRET_KEY', default='django-insecure-change-me-in-production')
 
 # Application definition
 DJANGO_APPS = [
@@ -47,9 +47,6 @@ LOCAL_APPS = [
     'showpur_core.apps.connections',
     'showpur_core.apps.ledger',
     'showpur_core.apps.notifications',
-    'showpur_core.apps.display',
-    'showpur_core.apps.social',
-    'showpur_core.apps.search',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -142,11 +139,12 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOWED_ORIGINS_RAW = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_RAW if CORS_ALLOWED_ORIGINS_RAW else []
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
-CELERY_BROKER_URL = env('REDIS_URL', default='redis://localhost:6379')
+CELERY_BROKER_URL = env('REDIS_URL') or 'redis://localhost:6379'
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -157,7 +155,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [env('REDIS_URL', default='redis://localhost:6379')],
+            "hosts": [env('REDIS_URL') or 'redis://localhost:6379'],
         },
     },
 }

@@ -3,7 +3,9 @@
 Production settings - for live deployment
 """
 
-from .base import *
+from .base import *  # noqa: F401, F403
+from .base import env, BASE_DIR
+import os
 
 DEBUG = False
 

@@ -1,9 +1,10 @@
-# showpur_core/settings/dev.py
 """
 Development settings - for local development only
 """
 
-from .base import *
+from .base import *  # noqa: F401, F403
+from .base import BASE_DIR
+import os
 
 DEBUG = True
 
@@ -13,11 +14,11 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='showpur_dev'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD', default='postgres'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+        'NAME': os.environ.get('DB_NAME', 'showpur_dev'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 

@@ -1,4 +1,4 @@
-# showpur_core/settings/prod.py
+# showpur_main/settings/prod.py
 """
 Production settings - for live deployment
 """
@@ -10,6 +10,7 @@ import os
 DEBUG = False
 
 # ✅ Must be set in environment variables
+# use an empty list as default to satisfy env.list type expectations
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 # Database - Production (RDS, Neon, etc.)
@@ -27,12 +28,13 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # CORS for production
+# use an empty list as default to satisfy env.list type expectations
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
 # Email backend (SMTP for production)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env('EMAIL_PORT', default=587)
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')

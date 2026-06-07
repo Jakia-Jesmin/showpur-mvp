@@ -139,8 +139,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS_RAW = env.list('CORS_ALLOWED_ORIGINS', default=[])
-CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_RAW if CORS_ALLOWED_ORIGINS_RAW else []
+CORS_ALLOWED_ORIGINS: list[str] = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o]
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration

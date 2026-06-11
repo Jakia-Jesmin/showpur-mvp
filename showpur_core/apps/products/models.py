@@ -232,6 +232,8 @@ class DisplayRequest(models.Model):
     STATUS_RECEIVED   = 'received'     # physical only: showroom confirmed receipt
     STATUS_ACTIVE     = 'active'       # product is live & sellable at this location
     STATUS_CLOSED     = 'closed'       # ended (returned / agreement ended)
+    STATUS_SOLD       = 'sold'         # all dispatched units confirmed sold
+    STATUS_RETURNED   = 'returned'     # units returned to owner before full sale
 
     STATUS_CHOICES = [
         (STATUS_PENDING,    'Pending'),
@@ -241,6 +243,8 @@ class DisplayRequest(models.Model):
         (STATUS_RECEIVED,   'Received'),
         (STATUS_ACTIVE,     'Active'),
         (STATUS_CLOSED,     'Closed'),
+        (STATUS_SOLD,       'Sold'),
+        (STATUS_RETURNED,   'Returned'),
     ]
 
     TYPE_PHYSICAL = 'physical'
@@ -257,8 +261,14 @@ class DisplayRequest(models.Model):
     status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
 
     # Quantities
-    requested_quantity = models.IntegerField(validators=[MinValueValidator(1)])
-    accepted_quantity  = models.IntegerField(null=True, blank=True)  # set by owner on accept
+    requested_quantity  = models.IntegerField(validators=[MinValueValidator(1)])
+    accepted_quantity   = models.IntegerField(null=True, blank=True)   # set by owner on accept
+    quantity_dispatched = models.IntegerField(null=True, blank=True)   # units physically sent
+    quantity_sold       = models.IntegerField(default=0)               # units confirmed sold
+
+    # Pricing — stored on the request so the margin is locked at dispatch time
+    wholesale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    retail_price    = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Terms agreed at acceptance
     agreed_commission_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)

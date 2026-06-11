@@ -11,18 +11,23 @@ router.register(r'alerts',         views.AlertViewSet,              basename='al
 
 urlpatterns = [
     # Dashboard
-    path('dashboard/',          views.AcShowDashboardView.as_view(),    name='acshow-dashboard'),
+    path('dashboard/',          views.AcShowDashboardView.as_view(),       name='acshow-dashboard'),
     path('dashboard/cards/',    views.DashboardSummaryCardsView.as_view(), name='dashboard-cards'),
 
+    # Floor 1: Cash Intelligence
+    path('dashboard-pulse/',    views.DashboardPulseView.as_view(),        name='dashboard-pulse'),
+    path('inventory-quality/',  views.InventoryQualityView.as_view(),      name='inventory-quality'),
+    path('aging-report/',       views.AgingReportView.as_view(),           name='aging-report'),
+
     # Reports
-    path('reports/cashflow/',   views.CashflowReportView.as_view(),     name='cashflow-report'),
+    path('reports/cashflow/',   views.CashflowReportView.as_view(),        name='cashflow-report'),
 
     # Business Health
-    path('health/',             views.BusinessHealthView.as_view(),      name='business-health'),
+    path('health/',             views.BusinessHealthView.as_view(),        name='business-health'),
 
     # Trial
-    path('trial/start/',        views.StartTrialView.as_view(),          name='start-trial'),
+    path('trial/start/',        views.StartTrialView.as_view(),            name='start-trial'),
 
-    # Router (transactions, quick-records, cash-positions, contacts, alerts, categories)
+    # Router (transactions, quick-records, cash-positions, contacts, alerts)
     path('', include(router.urls)),
 ]

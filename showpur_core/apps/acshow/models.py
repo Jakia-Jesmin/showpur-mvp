@@ -63,6 +63,7 @@ class AcShowTransaction(models.Model):
         ('quick', 'Quick Record'),
         ('showpur', 'Showpur Order'),
         ('bulk', 'Bulk Import'),
+        ('collection', 'Collection Payment'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -113,6 +114,9 @@ class AcShowTransaction(models.Model):
         ('customer', 'Customer'), ('supplier', 'Supplier'),
         ('employee', 'Employee'), ('other', 'Other'),
     ], default='other')
+
+    # Cost of goods sold — stored alongside revenue; gross_profit = amount - cost_amount
+    cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
 
     # Product
     product = models.ForeignKey(
@@ -380,6 +384,44 @@ class QuickRecord(models.Model):
             source='quick',
             status='approved' if auto_approve else 'pending',
         )
+
+
+# ============================================================
+# OWNER WITHDRAWAL  (cash taken out by the business owner)
+# ============================================================
+
+class OwnerWithdrawal(models.Model):
+    SOURCE_CHOICES = [
+        ('CASH', 'Cash in Hand'),
+        ('BANK', 'Cash at Bank'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    business = models.ForeignKey(
+        'accounts.BusinessProfile', on_delete=models.CASCADE,
+        related_name='owner_withdrawals'
+    )
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='CASH')
+    withdrawn_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='owner_withdrawals'
+    )
+    reason = models.TextField(blank=True)
+    withdrawn_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'acshow_owner_withdrawals'
+        ordering = ['-withdrawn_at']
+        indexes = [
+            models.Index(fields=['business', 'withdrawn_at']),
+        ]
+
+    def __str__(self):
+        return f"Withdrawal {self.amount} ({self.source}) by {self.withdrawn_by}"
 
 
 # ============================================================

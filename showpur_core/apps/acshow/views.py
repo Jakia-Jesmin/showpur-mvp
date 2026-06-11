@@ -34,6 +34,11 @@ from .serializers import (
     _sum,
 )
 from .permissions import HasAcShowAccess, IsMaker, IsChecker, CanApproveTransaction
+from .selectors.business_pulse import (
+    get_daily_business_pulse,
+    get_inventory_quality_report,
+    get_receivables_aging_report,
+)
 
 
 def get_business(user):
@@ -577,3 +582,57 @@ class StartTrialView(APIView):
             'message': '14-day free trial started.',
             'trial_end': user.acshow_trial_end,
         })
+
+
+# ============================================================
+# FLOOR 1: DAILY BUSINESS PULSE
+# GET /api/v1/acshow/dashboard-pulse/
+# ============================================================
+
+class DashboardPulseView(APIView):
+    """
+    The 5 critical numbers for today: cash available, sales, gross profit,
+    collections, withdrawals, and net cash change.
+    """
+    permission_classes = [IsAuthenticated, HasAcShowAccess]
+
+    def get(self, request):
+        business = get_business(request.user)
+        pulse = get_daily_business_pulse(business)
+        return Response({'success': True, 'data': pulse})
+
+
+# ============================================================
+# FLOOR 1: INVENTORY QUALITY
+# GET /api/v1/acshow/inventory-quality/
+# ============================================================
+
+class InventoryQualityView(APIView):
+    """
+    Classify outstanding showroom inventory by age: HEALTHY / WATCH / RISK / DEAD STOCK.
+    Returns total and per-bucket values plus a line-item breakdown.
+    """
+    permission_classes = [IsAuthenticated, HasAcShowAccess]
+
+    def get(self, request):
+        business = get_business(request.user)
+        report = get_inventory_quality_report(business)
+        return Response({'success': True, 'data': report})
+
+
+# ============================================================
+# FLOOR 1: RECEIVABLES AGING REPORT
+# GET /api/v1/acshow/aging-report/
+# ============================================================
+
+class AgingReportView(APIView):
+    """
+    Bucket all outstanding receivables by how overdue they are:
+    current, 1-30, 31-60, 61-90, 90+ days.
+    """
+    permission_classes = [IsAuthenticated, HasAcShowAccess]
+
+    def get(self, request):
+        business = get_business(request.user)
+        report = get_receivables_aging_report(business)
+        return Response({'success': True, 'data': report})

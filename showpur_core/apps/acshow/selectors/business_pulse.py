@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.db.models import Sum
 from django.utils import timezone
 
-from ..models import AcShowTransaction, OwnerWithdrawal
+from ..models import AcShowTransaction
 from showpur_core.apps.products.models import DisplayRequest
 
 
@@ -34,16 +34,15 @@ def get_daily_business_pulse(business_profile):
     )
 
     # ── Cash available (all-time net liquid cash) ─────────────────────────
+    # Capital-account transactions are already captured in EXPENSE_TYPES cash flows,
+    # so no separate withdrawal deduction is needed here.
     income_hand   = _sum(approved.filter(transaction_type__in=INCOME_TYPES),  'cash_hand_amount')
     expense_hand  = _sum(approved.filter(transaction_type__in=EXPENSE_TYPES), 'cash_hand_amount')
     income_bank   = _sum(approved.filter(transaction_type__in=INCOME_TYPES),  'cash_bank_amount')
     expense_bank  = _sum(approved.filter(transaction_type__in=EXPENSE_TYPES), 'cash_bank_amount')
 
-    withdrawn_cash = _sum(OwnerWithdrawal.objects.filter(business=business_profile, source='CASH'))
-    withdrawn_bank = _sum(OwnerWithdrawal.objects.filter(business=business_profile, source='BANK'))
-
-    cash_hand    = income_hand  - expense_hand  - withdrawn_cash
-    bank_balance = income_bank  - expense_bank  - withdrawn_bank
+    cash_hand      = income_hand - expense_hand
+    bank_balance   = income_bank - expense_bank
     cash_available = cash_hand + bank_balance
 
     # ── Today's sales (revenue recognised today) ──────────────────────────
@@ -61,11 +60,10 @@ def get_daily_business_pulse(business_profile):
     )
 
     # ── Today's owner withdrawals ─────────────────────────────────────────
+    # A withdrawal is any approved payment to an account of type 'capital'.
     todays_withdrawal = _sum(
-        OwnerWithdrawal.objects.filter(
-            business=business_profile,
-            withdrawn_at__date=today,
-        )
+        todays_txns.filter(account__account_type='capital'),
+        'amount',
     )
 
     return {

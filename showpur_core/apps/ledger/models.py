@@ -8,6 +8,7 @@ class Account(models.Model):
         ('cash_bank',  'My Cash & Bank'),
         ('receivable', 'Will Collect'),
         ('payable',    'Will Pay'),
+        ('capital',    "Owner's Capital"),
     ]
 
     business = models.ForeignKey(

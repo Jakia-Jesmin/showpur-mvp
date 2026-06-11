@@ -33,6 +33,9 @@ DEFAULT_ACCOUNTS = [
 
     # Will Pay — credit purchases not yet paid (liability, not expense)
     {'name': 'Supplier Credit',  'name_bn': 'বাকি কেনা',             'account_type': 'payable',    'icon': '📤', 'order': 1},
+
+    # Owner's Capital — payments here are auto-detected as owner withdrawals
+    {'name': "Owner's Drawing",  'name_bn': 'মালিকের উত্তোলন',      'account_type': 'capital',    'icon': '👤', 'order': 1},
 ]
 
 

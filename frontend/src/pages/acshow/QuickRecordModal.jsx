@@ -198,7 +198,7 @@ const QuickRecordModal = ({ type: initType, onClose, onSuccess }) => {
       if (cfg.partyType) payload.party_type        = cfg.partyType;
       if (productId)  payload.product              = productId;
       if (quantity)   payload.quantity             = parseFloat(quantity) || 1;
-      if (categoryId) payload.transaction_category = categoryId;
+      if (categoryId) payload.account               = categoryId;
       if (notes.trim()) payload.notes              = notes.trim();
 
       let txn;

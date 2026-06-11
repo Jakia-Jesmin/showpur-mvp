@@ -1,5 +1,6 @@
 import React from 'react';
-import { RefreshCw, Banknote, ArrowDownLeft, ArrowUpRight, TrendingUp, Minus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, Banknote, ArrowDownLeft, ArrowUpRight, TrendingUp, Minus, ChevronRight } from 'lucide-react';
 import { useBusinessPulse } from '@/hooks/useBusinessPulse';
 
 const fmt  = (n) => parseFloat(n || 0).toLocaleString('en-IN');
@@ -36,6 +37,7 @@ const MetricCard = ({ label, labelBn, value, prefix = '৳', color = 'text-gray-
 );
 
 const BusinessPulsePage = () => {
+  const navigate = useNavigate();
   const { pulse, loading, error, refresh } = useBusinessPulse();
 
   const p = pulse || {};
@@ -98,16 +100,24 @@ const BusinessPulsePage = () => {
           <div>
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Today's Trading</h2>
             <div className="grid grid-cols-2 gap-3">
-              <MetricCard
-                label="Sales"
-                labelBn="আজকের বিক্রয়"
-                value={p.todays_sales}
-                color="text-blue-700"
-                bg="bg-blue-50"
-                border="border-blue-100"
-                icon={TrendingUp}
-                iconColor="bg-blue-100 text-blue-600"
-              />
+              <button
+                onClick={() => navigate('/acshow/transactions')}
+                className="bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-sm text-left hover:bg-blue-100/60 transition-colors group"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sales</p>
+                    <p className="text-[10px] text-gray-300 mt-0.5">আজকের বিক্রয়</p>
+                    <p className="text-xl font-black mt-2 text-blue-700">৳{fmt(p.todays_sales)}</p>
+                  </div>
+                  <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 ml-2">
+                    <TrendingUp size={18} className="text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-blue-400 mt-2 flex items-center gap-0.5 group-hover:text-blue-600">
+                  View transactions <ChevronRight size={10} />
+                </p>
+              </button>
               <div className={`border rounded-2xl p-4 shadow-sm ${grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Gross Profit</p>
                 <p className="text-[10px] text-gray-300 mt-0.5">মোট মুনাফা</p>
@@ -127,16 +137,24 @@ const BusinessPulsePage = () => {
           <div>
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Today's Cash Movement</h2>
             <div className="grid grid-cols-2 gap-3">
-              <MetricCard
-                label="Collected"
-                labelBn="আদায়"
-                value={p.todays_collection}
-                color="text-emerald-700"
-                bg="bg-emerald-50"
-                border="border-emerald-100"
-                icon={ArrowDownLeft}
-                iconColor="bg-emerald-100 text-emerald-600"
-              />
+              <button
+                onClick={() => navigate('/acshow/receivables')}
+                className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm text-left hover:bg-emerald-100/60 transition-colors group"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Collected</p>
+                    <p className="text-[10px] text-gray-300 mt-0.5">আদায়</p>
+                    <p className="text-xl font-black mt-2 text-emerald-700">৳{fmt(p.todays_collection)}</p>
+                  </div>
+                  <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 ml-2">
+                    <ArrowDownLeft size={18} className="text-emerald-600" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-emerald-400 mt-2 flex items-center gap-0.5 group-hover:text-emerald-600">
+                  Manage receivables <ChevronRight size={10} />
+                </p>
+              </button>
               <MetricCard
                 label="Withdrawn"
                 labelBn="উত্তোলন"

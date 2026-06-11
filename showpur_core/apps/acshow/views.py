@@ -285,6 +285,32 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'remaining': txn.remaining_amount,
             })
 
+    # ── Collect payment via service (updates Daily Pulse) ───
+    @action(detail=True, methods=['post'])
+    def collect(self, request, pk=None):
+        from decimal import Decimal
+        from .services.ledger_core import record_collection_payment
+
+        txn = self.get_object()
+        raw_amount = request.data.get('amount')
+        payment_method = (request.data.get('payment_method', 'CASH') or 'CASH').upper()
+
+        if not raw_amount:
+            return Response({'error': 'amount is required.'}, status=400)
+        if payment_method not in ('CASH', 'BANK'):
+            return Response({'error': 'payment_method must be CASH or BANK.'}, status=400)
+
+        try:
+            record_collection_payment(txn, Decimal(str(raw_amount)), payment_method, request.user)
+            txn.refresh_from_db()
+            return Response({
+                'success': True,
+                'remaining': str(txn.remaining_amount),
+                'message': f'Collection of ৳{raw_amount} recorded.',
+            })
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+
     # ── Monthly summary ──────────────────────────────────────
 
     @action(detail=False, methods=['get'])

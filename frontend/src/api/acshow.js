@@ -69,6 +69,13 @@ export const acshowAPI = {
   // ── Products (for sale/purchase modals) ───────────────────
   getProducts: () => apiClient.get('/products/products/'),
 
+  // ── Collection payment (via service — updates Daily Pulse) ─
+  collectPayment: (id, data) => apiClient.post(`/acshow/transactions/${id}/collect/`, data),
+
+  // ── Chart of Accounts as transaction categories ───────────
+  getCategories: (type) =>
+    apiClient.get(`/ledger/accounts/${type ? `?type=${type}` : ''}`),
+
   // ── Floor 1: Cash Intelligence ────────────────────────────
   getDashboardPulse:   () => apiClient.get('/acshow/dashboard-pulse/'),
   getInventoryQuality: () => apiClient.get('/acshow/inventory-quality/'),

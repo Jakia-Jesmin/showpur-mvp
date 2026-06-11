@@ -22,6 +22,8 @@ import CashflowPage from '@/pages/acshow/CashflowPage';
 import ReceivablesPage from '@/pages/acshow/ReceivablesPage';
 import PayablesPage from '@/pages/acshow/PayablesPage';
 import HealthPage from '@/pages/acshow/HealthPage';
+import BusinessPulsePage from '@/pages/acshow/BusinessPulsePage';
+import InventoryQualityPage from '@/pages/acshow/InventoryQualityPage';
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -126,6 +128,8 @@ const DashboardPage = () => {
               <Route path="alerts" element={<AlertsPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="transactions/:id" element={<TransactionDetailPage />} />
+              <Route path="pulse" element={<BusinessPulsePage />} />
+              <Route path="inventory-quality" element={<InventoryQualityPage />} />
               <Route path="cashflow" element={<CashflowPage />} />
               <Route path="receivables" element={<ReceivablesPage />} />
               <Route path="payables" element={<PayablesPage />} />

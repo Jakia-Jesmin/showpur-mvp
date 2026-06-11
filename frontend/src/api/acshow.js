@@ -69,6 +69,11 @@ export const acshowAPI = {
   // ── Products (for sale/purchase modals) ───────────────────
   getProducts: () => apiClient.get('/products/products/'),
 
+  // ── Floor 1: Cash Intelligence ────────────────────────────
+  getDashboardPulse:   () => apiClient.get('/acshow/dashboard-pulse/'),
+  getInventoryQuality: () => apiClient.get('/acshow/inventory-quality/'),
+  getAgingReport:      () => apiClient.get('/acshow/aging-report/'),
+
   // ── Trial ─────────────────────────────────────────────────
   startTrial: () => apiClient.post('/acshow/trial/start/'),
 };

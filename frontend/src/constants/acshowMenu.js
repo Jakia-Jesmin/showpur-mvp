@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeftRight, ArrowDownLeft, ArrowUpRight, TrendingUp, Activity, Settings, ShoppingCart, DollarSign, Receipt, Package, CreditCard, Zap, Layers } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, ArrowDownLeft, ArrowUpRight, TrendingUp, Activity, Settings, ShoppingCart, DollarSign, Receipt, Package, CreditCard, Zap, Layers, Clock } from 'lucide-react';
 import { Bell, RefreshCw, Menu, X, Users } from 'lucide-react';
 
 export const MENU_ITEMS = [
@@ -20,6 +20,7 @@ export const MENU_ITEMS = [
   // Floor 1: Cash Intelligence
   { id: 'pulse', label: 'Daily Pulse (দৈনিক)', icon: Zap, path: '/acshow/pulse' },
   { id: 'inventory-quality', label: 'Inventory Quality', icon: Layers, path: '/acshow/inventory-quality' },
+  { id: 'aging-report', label: 'Aging Report (বকেয়া)', icon: Clock, path: '/acshow/aging-report' },
   { id: 'cashflow', label: 'Cashflow (ক্যাশফ্লো)', icon: TrendingUp, path: '/acshow/cashflow' },
   { id: 'health', label: 'Business Health', icon: Activity, path: '/acshow/health' },
   { id: 'settings', label: 'Settings (সেটিংস)', icon: Settings, path: '/acshow/settings' },

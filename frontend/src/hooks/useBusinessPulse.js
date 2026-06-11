@@ -23,6 +23,33 @@ export const useBusinessPulse = () => {
   return { pulse, loading, error, refresh: fetch };
 };
 
+export const useAgingReport = () => {
+  const [report, setReport]   = useState(null);
+  const [overdue, setOverdue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  const fetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [agingRes, txnRes] = await Promise.all([
+        acshowAPI.getAgingReport(),
+        acshowAPI.getTransactions({ overdue: '1', page_size: 50 }),
+      ]);
+      setReport(agingRes.data || agingRes);
+      setOverdue(txnRes.results || txnRes.data?.results || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load aging report');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+  return { report, overdue, loading, error, refresh: fetch };
+};
+
 export const useInventoryQuality = () => {
   const [report, setReport]   = useState(null);
   const [loading, setLoading] = useState(true);

@@ -45,6 +45,9 @@ LOCAL_APPS = [
     'showpur_core.apps.acshow',
     'showpur_core.apps.dashboard',
     'showpur_core.apps.connections',
+    'showpur_core.apps.display',
+    'showpur_core.apps.social',
+    'showpur_core.apps.search',
     'showpur_core.apps.ledger',
     'showpur_core.apps.notifications',
 ]
@@ -143,10 +146,13 @@ CORS_ALLOWED_ORIGINS: list[str] = [o for o in os.environ.get('CORS_ALLOWED_ORIGI
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
-CELERY_BROKER_URL = env('REDIS_URL') or 'redis://localhost:6379'
-CELERY_RESULT_BACKEND = 'django-db'
+# Make all optional with defaults
+CELERY_BROKER_URL = env.str('REDIS_URL', default='redis://localhost:6379')
+CELERY_RESULT_BACKEND = env.str('REDIS_URL', default='redis://localhost:6379')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
 
 # Channels (WebSocket)
 ASGI_APPLICATION = 'showpur_main.asgi.application'
@@ -154,7 +160,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [env('REDIS_URL') or 'redis://localhost:6379'],
+            "hosts": [env.str('REDIS_URL', default='redis://localhost:6379')],
         },
     },
 }

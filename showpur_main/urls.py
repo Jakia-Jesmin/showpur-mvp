@@ -33,8 +33,8 @@ urlpatterns = [
     path('api/dashboard/', include('showpur_core.apps.dashboard.urls')),
     path('api/notifications/', include('showpur_core.apps.notifications.urls')),
     path('api/search/', include('showpur_core.apps.search.urls')),
-    path('ledger/', include('showpur_core.apps.coa.urls')),
-    path('acshow/', include('showpur_core.apps.acshow.urls')),
+    path('api/ledger/', include('showpur_core.apps.coa.urls')),
+    path('api/acshow/', include('showpur_core.apps.acshow.urls')),
 ]
 
 if settings.DEBUG:

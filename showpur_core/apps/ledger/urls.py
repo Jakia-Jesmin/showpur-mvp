@@ -1,10 +1,6 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import AccountViewSet
+# Chart of Accounts URLs moved to showpur_core.apps.coa
+# See showpur_core.apps.coa.urls for the active Chart of Accounts API
 
-router = DefaultRouter()
-router.register(r'accounts', AccountViewSet, basename='account')
+from django.urls import path
 
-urlpatterns = [
-    path('', include(router.urls)),
-]
+urlpatterns = []

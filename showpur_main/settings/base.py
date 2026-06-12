@@ -48,6 +48,7 @@ LOCAL_APPS = [
     'showpur_core.apps.display',
     'showpur_core.apps.social',
     'showpur_core.apps.search',
+    'showpur_core.apps.coa',
     'showpur_core.apps.ledger',
     'showpur_core.apps.notifications',
 ]

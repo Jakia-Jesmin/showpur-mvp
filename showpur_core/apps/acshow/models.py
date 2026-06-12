@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator
 import uuid
 from decimal import Decimal
 from showpur_core.apps.connections.models import Contact
-from showpur_core.apps.ledger.models import Account
+from showpur_core.apps.coa.models import Account
 
 
 # ============================================================

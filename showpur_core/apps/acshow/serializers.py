@@ -7,7 +7,7 @@ from .models import (
     AcShowTransaction, AcShowCashPosition, QuickRecord,
     AcShowAlert, BusinessHealth,
 )
-from showpur_core.apps.ledger.serializers import AccountSerializer
+from showpur_core.apps.coa.serializers import AccountSerializer
 
 
 # ============================================================

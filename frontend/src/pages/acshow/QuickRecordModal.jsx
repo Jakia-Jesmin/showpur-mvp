@@ -224,14 +224,14 @@ const QuickRecordModal = ({ type: initType, onClose, onSuccess }) => {
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[95vh] flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="flex-shrink-0 border-b px-4 py-3 flex items-center justify-between">
+        <div className="shrink-0 border-b px-4 py-3 flex items-center justify-between">
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
           <h2 className="font-bold text-gray-800 text-base">New Transaction</h2>
           <div className="w-7" />
         </div>
 
         {/* Type Tabs */}
-        <div className="flex-shrink-0 px-4 pt-3 pb-1">
+        <div className="shrink-0 px-4 pt-3 pb-1">
           <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
             {TYPES.map(t => (
               <button
@@ -475,13 +475,13 @@ const QuickRecordModal = ({ type: initType, onClose, onSuccess }) => {
         </div>
 
         {/* Footer — Save Draft / Submit */}
-        <div className="flex-shrink-0 border-t bg-white px-4 py-3 flex gap-3">
+        <div className="shrink-0 border-t bg-white px-4 py-3 flex gap-3">
           <button type="button" disabled={loading} onClick={() => handleSubmit(true)}
             className="flex-1 py-3.5 rounded-xl text-sm font-semibold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 active:scale-95 disabled:opacity-50 transition-all">
             Save Draft
           </button>
           <button type="button" disabled={loading} onClick={() => handleSubmit(false)}
-            className={`flex-[2] py-3.5 rounded-xl text-sm font-bold text-white active:scale-95 disabled:opacity-50 transition-all ${cfg.btn}`}>
+            className={`flex-2 py-3.5 rounded-xl text-sm font-bold text-white active:scale-95 disabled:opacity-50 transition-all ${cfg.btn}`}>
             {loading ? 'Saving...' : `Submit ${cfg.icon}`}
           </button>
         </div>
